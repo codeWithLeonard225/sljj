@@ -7,7 +7,9 @@
  * -------------------------------------------
  */
 @media print {
-    
+     .back-button {
+        display: none !important; 
+    }
     /* 1. Page Setup & General Layout - MINIMIZED MARGINS */
     @page {
         size: A4;

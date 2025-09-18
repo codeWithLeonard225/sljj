@@ -221,220 +221,230 @@ const HajjForm = () => {
         }
     };
 
-    const handlePrint = (submissionData) => {
-        // Helper function to safely get data or a placeholder
-        const getVal = (key) => submissionData[key] || 'N/A';
+   const handlePrint = (submissionData) => {
+    // Helper function to safely get data or a placeholder
+    const getVal = (key) => submissionData[key] || 'N/A';
 
-        // Format the Photo URL for printing (or use a placeholder)
-        // Photo is embedded as a Base64 string from the form data
-        const pilgrimPhotoHtml = submissionData.pilgrimPhoto
-            ? `<img src="${submissionData.pilgrimPhoto}" alt="Pilgrim Photo" style="width: 1.5in; height: 2in; object-fit: cover; border: 2px solid #ccc; margin-bottom: 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact;" />`
-            : `<div style="width: 1.5in; height: 2in; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; text-align: center; color: #555;">2-Inch Photo Missing</div>`;
+    // Format the Photo URL for printing (or use a placeholder)
+    // Photo is embedded as a Base64 string from the form data
+    const pilgrimPhotoHtml = submissionData.pilgrimPhoto
+        ? `<img src="${submissionData.pilgrimPhoto}" alt="Pilgrim Photo" style="width: 1.5in; height: 2in; object-fit: cover; border: 2px solid #ccc; margin-bottom: 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact;" />`
+        : `<div style="width: 1.5in; height: 2in; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; text-align: center; color: #555;">2-Inch Photo Missing</div>`;
 
-        // Generate print-friendly HTML content using the submissionData
-        const printContent = `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Hajj Application - ${getVal('firstName')} ${getVal('lastName')}</title>
-            <style>
-                /* PAGE SETUP */
-                @page { 
-                    size: A4; 
-                    margin: 10mm; /* Minimal margins */
-                }
-                body { 
-                    font-family: Arial, sans-serif; 
-                    margin: 0; 
-                    padding: 0; 
-                    color: #000; 
-                    font-size: 10pt;
-                }
-                
-                /* BACKGROUND WRAPPER (Watermark) */
+    // Generate print-friendly HTML content using the submissionData
+    const printContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Hajj Application - ${getVal('firstName')} ${getVal('lastName')}</title>
+        <style>
+            /* PAGE SETUP */
+            @page { 
+                size: A4; 
+                margin: 10mm; /* Minimal margins */
+            }
+            body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 0; 
+                color: #000; 
+                font-size: 10pt;
+            }
+            
+            /* BACKGROUND WRAPPER (Watermark) */
+            .background-wrapper {
+                background-image: url('/images/needed.png');
+                background-position: center;
+                background-repeat: no-repeat;
+                background-size: contain; 
+                min-height: 270mm; /* Ensures it covers the full page height */
+                width: 100%;
+                padding: 0;
+                margin: 0;
+                opacity: 0.15; /* Light watermark opacity */
+                position: absolute; /* Allows content to float over it */
+                top: 0;
+                left: 0;
+                z-index: -1; /* Pushes it behind the content */
+            }
+            
+            .print-container { 
+                max-width: 190mm; /* A little less than A4 width */
+                margin: 0 auto; 
+                padding: 0;
+                position: relative;
+                z-index: 10;
+            }
+
+            /* TYPOGRAPHY & LAYOUT */
+            .header { 
+                text-align: center; 
+                margin-bottom: 20px; 
+                padding-bottom: 10px; 
+                border-bottom: 2px solid #000; 
+            }
+            .section-title { 
+                font-size: 11pt; 
+                font-weight: bold; 
+                background-color: #f3f4f6; 
+                padding: 5px 10px; 
+                margin-top: 15px; 
+                margin-bottom: 8px;
+                border-left: 5px solid #3b82f6; 
+            }
+            .info-grid { 
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 5px 15px; /* Reduced gap */
+                margin-bottom: 10px; 
+            }
+            .info-item { 
+                font-size: 10pt; 
+                line-height: 1.4;
+                padding-bottom: 3px;
+            }
+            .info-item strong { 
+                display: inline-block; 
+                font-weight: bold; 
+                color: #555; 
+                min-width: 120px;
+            }
+            .signature-box { 
+                display: flex; 
+                justify-content: space-between; 
+                margin-top: 40px; 
+                padding-top: 15px; 
+                border-top: 1px solid #ccc; 
+            }
+            .signature-line { 
+                width: 100%; 
+                border-bottom: 1px solid #000; 
+                height: 15px; /* Reduced height */
+            }
+            
+            /* CRITICAL: Ensure content breaks cleanly */
+            .section-block { 
+                page-break-inside: avoid; 
+                break-inside: avoid; 
+            }
+            
+            /* Add pointer cursor to the image */
+            .header img {
+                cursor: pointer;
+            }
+
+            /* PRINT OVERRIDE */
+            @media print {
+                /* CRITICAL: Force backgrounds to print for the watermark */
                 .background-wrapper {
-                    background-image: url('/images/needed.png');
-                    background-position: center;
-                    background-repeat: no-repeat;
-                    background-size: contain; 
-                    min-height: 270mm; /* Ensures it covers the full page height */
-                    width: 100%;
-                    padding: 0;
-                    margin: 0;
-                    opacity: 0.15; /* Light watermark opacity */
-                    position: absolute; /* Allows content to float over it */
-                    top: 0;
-                    left: 0;
-                    z-index: -1; /* Pushes it behind the content */
+                    -webkit-print-color-adjust: exact !important; 
+                    print-color-adjust: exact !important;
                 }
-                
-                .print-container { 
-                    max-width: 190mm; /* A little less than A4 width */
-                    margin: 0 auto; 
-                    padding: 0;
-                    position: relative;
-                    z-index: 10;
+                .info-grid { grid-template-columns: 1fr 1fr; }
+                /* Make all text black for clean printing */
+                .info-item, .section-title, p, h1, strong {
+                    color: #000 !important;
                 }
+                /* Remove pointer cursor for the printout */
+                .header img {
+                    cursor: default;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="background-wrapper"></div>
+        
+        <div class="print-container">
 
-                /* TYPOGRAPHY & LAYOUT */
-                .header { 
-                    text-align: center; 
-                    margin-bottom: 20px; 
-                    padding-bottom: 10px; 
-                    border-bottom: 2px solid #000; 
-                }
-                .section-title { 
-                    font-size: 11pt; 
-                    font-weight: bold; 
-                    background-color: #f3f4f6; 
-                    padding: 5px 10px; 
-                    margin-top: 15px; 
-                    margin-bottom: 8px;
-                    border-left: 5px solid #3b82f6; 
-                }
-                .info-grid { 
-                    display: grid; 
-                    grid-template-columns: 1fr 1fr; 
-                    gap: 5px 15px; /* Reduced gap */
-                    margin-bottom: 10px; 
-                }
-                .info-item { 
-                    font-size: 10pt; 
-                    line-height: 1.4;
-                    padding-bottom: 3px;
-                }
-                .info-item strong { 
-                    display: inline-block; 
-                    font-weight: bold; 
-                    color: #555; 
-                    min-width: 120px;
-                }
-                .signature-box { 
-                    display: flex; 
-                    justify-content: space-between; 
-                    margin-top: 40px; 
-                    padding-top: 15px; 
-                    border-top: 1px solid #ccc; 
-                }
-                .signature-line { 
-                    width: 100%; 
-                    border-bottom: 1px solid #000; 
-                    height: 15px; /* Reduced height */
-                }
-                
-                /* CRITICAL: Ensure content breaks cleanly */
-                .section-block { 
-                    page-break-inside: avoid; 
-                    break-inside: avoid; 
-                }
-
-                /* PRINT OVERRIDE */
-                @media print {
-                    /* CRITICAL: Force backgrounds to print for the watermark */
-                    .background-wrapper {
-                        -webkit-print-color-adjust: exact !important; 
-                        print-color-adjust: exact !important;
-                    }
-                    .info-grid { grid-template-columns: 1fr 1fr; }
-                    /* Make all text black for clean printing */
-                    .info-item, .section-title, p, h1, strong {
-                        color: #000 !important;
-                    }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="background-wrapper"></div>
-
-            <div class="print-container">
-
-                <div class="header section-block">
-                    <img src="/images/s-l1200.jpg" alt="SL Coat of Arms" style="height: 60px; margin-bottom: 5px;" />
-                    <h1 style="font-size: 14pt; margin: 0;">PRESIDENTIAL HAJJ TASKFORCE SECRETARIAT</h1>
-                    <p style="font-size: 9pt; margin-top: 3px;">HAJJ 2026 APPLICATION SUMMARY</p>
-                </div>
-                
-                <div class="section-block" style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="flex-grow: 1;">
-                        <div class="section-title">PILGRIM'S PERSONAL INFORMATION</div>
-                        <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
-                            <div class="info-item"><strong>Full Name:</strong> ${getVal('firstName')} ${getVal('middleName')} ${getVal('lastName')}</div>
-                            <div class="info-item"><strong>Marital Status:</strong> ${getVal('maritalStatus')}</div>
-                            <div class="info-item"><strong>Gender:</strong> ${getVal('gender')}</div>
-                            <div class="info-item"><strong>DOB / Age:</strong> ${getVal('dob')} / ${getVal('age')}</div>
-                            <div class="info-item"><strong>Occupation:</strong> ${getVal('occupation')}</div>
-                            <div class="info-item"><strong>Hajj Before:</strong> ${getVal('hajjBefore')} ${getVal('hajjBefore') === 'Yes' ? `(${getVal('hajjYear')})` : ''}</div>
-                        </div>
-                    </div>
-                    <div style="width: 1.5in; margin-left: 20px; text-align: center; flex-shrink: 0;">
-                        ${pilgrimPhotoHtml}
-                        <p style="font-size: 8pt; margin: 0;">Pilgrim Photo</p>
-                    </div>
-                </div>
-
-                <div class="section-title section-block">PASSPORT & CONTACT DETAILS</div>
-                <div class="info-grid section-block">
-                    <div class="info-item"><strong>Passport No:</strong> ${getVal('passportNumber')}</div>
-                    <div class="info-item"><strong>Issue Place/Date:</strong> ${getVal('passportIssuePlace')} / ${getVal('passportIssueDate')}</div>
-                    <div class="info-item"><strong>Expiry Date:</strong> ${getVal('passportExpiryDate')}</div>
-                    <div class="info-item"><strong>District:</strong> ${submissionData.districts?.join(', ') || 'N/A'}</div>
-                    <div class="info-item" style="grid-column: span 2;"><strong>Residential Address:</strong> ${getVal('residentialAddress')}</div>
-                    <div class="info-item"><strong>Email:</strong> ${getVal('email')}</div>
-                    <div class="info-item"><strong>Phone:</strong> ${getVal('phone')}</div>
-                </div>
-
-                <div class="section-title section-block">NEXT OF KIN</div>
-                <div class="info-grid section-block">
-                    <div class="info-item"><strong>Kin Name:</strong> ${getVal('kinFirstName')}</div>
-                    <div class="info-item"><strong>Relationship:</strong> ${getVal('kinRelationship')}</div>
-                    <div class="info-item" style="grid-column: span 2;"><strong>Kin Address:</strong> ${getVal('kinAddress')}</div>
-                    <div class="info-item"><strong>Kin Phone:</strong> ${getVal('kinPhone')}</div>
-                    <div class="info-item"><strong>Kin Email:</strong> ${getVal('kinEmail')}</div>
-                </div>
-
-                <div class="section-title section-block">HEALTH & LEGAL DECLARATION</div>
-                <div class="info-grid section-block">
-                    <div class="info-item"><strong>Diet Needs:</strong> ${getVal('dietNeeds')} ${getVal('dietNeeds') === 'Yes' ? `(${getVal('dietDetails')})` : ''}</div>
-                    <div class="info-item"><strong>Medical Condition:</strong> ${getVal('medicalCondition')} ${getVal('medicalCondition') === 'Yes' ? `(${getVal('medicalDetails')})` : ''}</div>
-                    <div class="info-item"><strong>COVID Vaccine:</strong> ${getVal('covidVaccine')} ${getVal('covidVaccine') === 'Yes' ? `(${getVal('covidVaccineName')})` : ''}</div>
-                    <div class="info-item"><strong>Vaccine Date:</strong> ${getVal('vaccineDate')}</div>
-                    <div class="info-item"><strong>Convicted:</strong> ${getVal('convicted')}</div>
-                    <div class="info-item"><strong>Deported:</strong> ${getVal('deported')}</div>
-                </div>
-
-                <div class="signature-box section-block">
-                    <div style="width: 45%; text-align: center;">
-                        <div class="signature-line"></div>
-                        <p style="font-size: 8pt; margin-top: 5px;">Pilgrim's Signature / Thumb Print</p>
-                    </div>
-                    <div style="width: 45%; text-align: center;">
-                        <div class="signature-line"></div>
-                        <p style="font-size: 8pt; margin-top: 5px;">Date Printed: ${new Date().toLocaleDateString()}</p>
-                    </div>
-                </div>
-
-                <p style="font-size: 7pt; text-align: center; margin-top: 15px;">I hereby confirm that the information provided is true to the best of my knowledge.</p>
-                <p style="font-size: 8pt; text-align: center; margin-top: 5px; color: #555;">*This is a summary of the application data submitted to the Presidential Hajj Taskforce Secretariat.</p>
+            <div class="header section-block">
+                <!-- ADDED THE ONCLICK HERE -->
+                <img src="/images/s-l1200.jpg" alt="SL Coat of Arms" style="height: 60px; margin-bottom: 5px;" onclick="window.close();" />
+                <h1 style="font-size: 14pt; margin: 0;">PRESIDENTIAL HAJJ TASKFORCE SECRETARIAT</h1>
+                <p style="font-size: 9pt; margin-top: 3px;">HAJJ 2026 APPLICATION SUMMARY</p>
             </div>
-        </body>
-        </html>
-    `;
+            
+            <div class="section-block" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="flex-grow: 1;">
+                    <div class="section-title">PILGRIM'S PERSONAL INFORMATION</div>
+                    <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="info-item"><strong>Full Name:</strong> ${getVal('firstName')} ${getVal('middleName')} ${getVal('lastName')}</div>
+                        <div class="info-item"><strong>Marital Status:</strong> ${getVal('maritalStatus')}</div>
+                        <div class="info-item"><strong>Gender:</strong> ${getVal('gender')}</div>
+                        <div class="info-item"><strong>DOB / Age:</strong> ${getVal('dob')} / ${getVal('age')}</div>
+                        <div class="info-item"><strong>Occupation:</strong> ${getVal('occupation')}</div>
+                        <div class="info-item"><strong>Hajj Before:</strong> ${getVal('hajjBefore')} ${getVal('hajjBefore') === 'Yes' ? `(${getVal('hajjYear')})` : ''}</div>
+                    </div>
+                </div>
+                <div style="width: 1.5in; margin-left: 20px; text-align: center; flex-shrink: 0;">
+                    ${pilgrimPhotoHtml}
+                    <p style="font-size: 8pt; margin: 0;">Pilgrim Photo</p>
+                </div>
+            </div>
 
-        // Open a new window, write the content, and trigger print
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-            printWindow.focus();
+            <div class="section-title section-block">PASSPORT & CONTACT DETAILS</div>
+            <div class="info-grid section-block">
+                <div class="info-item"><strong>Passport No:</strong> ${getVal('passportNumber')}</div>
+                <div class="info-item"><strong>Issue Place/Date:</strong> ${getVal('passportIssuePlace')} / ${getVal('passportIssueDate')}</div>
+                <div class="info-item"><strong>Expiry Date:</strong> ${getVal('passportExpiryDate')}</div>
+                <div class="info-item"><strong>District:</strong> ${submissionData.districts?.join(', ') || 'N/A'}</div>
+                <div class="info-item" style="grid-column: span 2;"><strong>Residential Address:</strong> ${getVal('residentialAddress')}</div>
+                <div class="info-item"><strong>Email:</strong> ${getVal('email')}</div>
+                <div class="info-item"><strong>Phone:</strong> ${getVal('phone')}</div>
+            </div>
 
-            // Use a slight delay to ensure the background image/CSS is parsed before printing
-            setTimeout(() => {
-                printWindow.print();
-            }, 500);
-        }
-    };
+            <div class="section-title section-block">NEXT OF KIN</div>
+            <div class="info-grid section-block">
+                <div class="info-item"><strong>Kin Name:</strong> ${getVal('kinFirstName')}</div>
+                <div class="info-item"><strong>Relationship:</strong> ${getVal('kinRelationship')}</div>
+                <div class="info-item" style="grid-column: span 2;"><strong>Kin Address:</strong> ${getVal('kinAddress')}</div>
+                <div class="info-item"><strong>Kin Phone:</strong> ${getVal('kinPhone')}</div>
+                <div class="info-item"><strong>Kin Email:</strong> ${getVal('kinEmail')}</div>
+            </div>
+
+            <div class="section-title section-block">HEALTH & LEGAL DECLARATION</div>
+            <div class="info-grid section-block">
+                <div class="info-item"><strong>Diet Needs:</strong> ${getVal('dietNeeds')} ${getVal('dietNeeds') === 'Yes' ? `(${getVal('dietDetails')})` : ''}</div>
+                <div class="info-item"><strong>Medical Condition:</strong> ${getVal('medicalCondition')} ${getVal('medicalCondition') === 'Yes' ? `(${getVal('medicalDetails')})` : ''}</div>
+                <div class="info-item"><strong>COVID Vaccine:</strong> ${getVal('covidVaccine')} ${getVal('covidVaccine') === 'Yes' ? `(${getVal('covidVaccineName')})` : ''}</div>
+                <div class="info-item"><strong>Vaccine Date:</strong> ${getVal('vaccineDate')}</div>
+                <div class="info-item"><strong>Convicted:</strong> ${getVal('convicted')}</div>
+                <div class="info-item"><strong>Deported:</strong> ${getVal('deported')}</div>
+            </div>
+
+            <div class="signature-box section-block">
+                <div style="width: 45%; text-align: center;">
+                    <div class="signature-line"></div>
+                    <p style="font-size: 8pt; margin-top: 5px;">Pilgrim's Signature / Thumb Print</p>
+                </div>
+                <div style="width: 45%; text-align: center;">
+                    <div class="signature-line"></div>
+                    <p style="font-size: 8pt; margin-top: 5px;">Date Printed: ${new Date().toLocaleDateString()}</p>
+                </div>
+            </div>
+
+            <p style="font-size: 7pt; text-align: center; margin-top: 15px;">I hereby confirm that the information provided is true to the best of my knowledge.</p>
+            <p style="font-size: 8pt; text-align: center; margin-top: 5px; color: #555;">*This is a summary of the application data submitted to the Presidential Hajj Taskforce Secretariat.</p>
+        </div>
+    </body>
+    </html>
+`;
+
+    // Open a new window, write the content, and trigger print
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+
+        // Use a slight delay to ensure the background image/CSS is parsed before printing
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    }
+};
 
     return (
         <div className="w-full max-w-4xl min-h-screen flex justify-center items-center bg-gray-100 p-2 sm:p-4 hajj-form-wrapper">
