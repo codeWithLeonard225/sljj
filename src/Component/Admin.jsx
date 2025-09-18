@@ -28,7 +28,6 @@ const NAV_ITEMS = [
     icon: <MdEdit />,
     children: [
       { key: "Form", label: " Form", icon: <MdPerson /> },
-      { key: "clientForm", label: "Client Form", icon: <MdPeople /> },
     ],
   },
   {
@@ -41,38 +40,12 @@ const NAV_ITEMS = [
         label: "Portfolio Transactoin",
         icon: <MdDescription />,
         children: [
-          { key: "generalportfolio", label: "General Portfolio", icon: <MdBarChart /> },
-          { key: "staffportfolio", label: "Staff Portfolio", icon: <MdFormatListBulleted /> },
-          { key: "groupReportTransactionGPT", label: "Group Report", icon: <MdFormatListBulleted /> },
+          // { key: "generalportfolio", label: "General Portfolio", icon: <MdBarChart /> },
+          // { key: "staffportfolio", label: "Staff Portfolio", icon: <MdFormatListBulleted /> },
+          // { key: "groupReportTransactionGPT", label: "Group Report", icon: <MdFormatListBulleted /> },
         ],
       },
-      {
-        key: "loanReports",
-        label: "Loan Reports",
-        icon: <MdAssignment />,
-        children: [
-          { key: "overdueLoans", label: "Overdue Loans", icon: <MdWarning /> },
-          { key: "disbursedLoans", label: "Disbursed Loans", icon: <MdCheckCircle /> },
-          { key: "outstandingBalances", label: "Outstanding Balances", icon: <MdRemoveCircle /> },
-          { key: "fullypaid", label: "Fully Paid", icon: <MdRemoveCircle /> },
-          { key: "paymentdetails", label: "Payment Details", icon: <MdRemoveCircle /> },
-        ],
-      },
-      {
-        key: "clientReports",
-        label: "Client Reports",
-        icon: <MdPeople />,
-        children: [{ key: "clientSpecific", label: "Client Specific", icon: <MdPerson /> }],
-      },
-      {
-        key: "systemReports",
-        label: "System Reports",
-        icon: <MdBarChart />,
-        children: [
-          { key: "transactionReports", label: "Transaction Logs", icon: <MdAssignment /> },
-          { key: "auditLogs", label: "Audit Logs", icon: <MdBook /> },
-        ],
-      },
+     
     ],
   },
 ];

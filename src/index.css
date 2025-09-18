@@ -1,3 +1,100 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* * -------------------------------------------
+ * CUSTOM PRINT STYLES FOR A4 MULTI-PAGE LAYOUT
+ * -------------------------------------------
+ */
+@media print {
+    
+    /* 1. Page Setup & General Layout - MINIMIZED MARGINS */
+    @page {
+        size: A4;
+        margin: 0.5cm; /* REDUCE: Use 0.5cm for minimal border around the page */
+    }
+
+    /* 2. Target the main form container - REMOVE ALL CONSTRAINTS */
+    .hajj-form-wrapper { 
+        min-height: auto !important;
+        background-image: none !important;
+        background-color: white !important; /* Ensure white background */
+        width: 100% !important;
+        max-width: none !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        padding: 0 !important; /* REMOVE PADDING on the wrapper */
+        margin: 0 !important; /* REMOVE MARGINS on the wrapper */
+    }
+    
+    /* 3. Ensure Content is Print-Ready - AGGRESSIVE PADDING/MARGIN REDUCTION */
+    .bg-white\/70, .bg-white\/50 {
+        background-color: white !important;
+        box-shadow: none !important;
+        /* REDUCE: Use minimal padding and margin */
+        padding: 0.2cm 0.5cm !important; 
+        margin-bottom: 0.5cm !important; /* Reduced space between sections */
+        
+        /* Ensure major sections don't split, and start cleanly */
+        break-inside: avoid;
+        break-after: auto; 
+    }
+    
+    /* 4. Hide Non-Printable Elements (Keep this section) */
+    .no-print,
+    button,
+    .table-container,
+    .shadow-lg,
+    .bg-blue-50,
+    .CameraCapture,
+    .mt-6 { /* Added mt-6 to remove space around the button area */
+        display: none !important;
+    }
+
+    /* 5. Clean up input fields (Keep this section) */
+    input[type="text"], 
+    input[type="date"], 
+    input[type="email"], 
+    input[type="tel"] {
+        border-color: #000 !important;
+        border-style: solid !important;
+        border-width: 0 0 1px 0 !important;
+        padding: 1px 0 !important; /* Reduce vertical padding */
+        margin-bottom: 2px !important; /* Reduce space below inputs */
+        box-shadow: none !important;
+        color: #000 !important;
+    }
+
+    /* 6. Fix Tailwind Flex/Grid Issues for Print - BE SELECTIVE */
+    /* Only reset classes that are causing flow issues, and use minimal margins */
+    .flex, .grid, .gap-4 {
+        display: flex !important; /* Keep as flex, but remove gaps */
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important; /* Allow small gaps for separation */
+        margin-bottom: 0.2rem !important;
+    }
+    .grid-cols-1, .md\:grid-cols-2, .md\:grid-cols-3 {
+        /* This ensures columns still try to fit side-by-side but with reduced padding/margin */
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    /* Global reduction for all standard elements */
+    p, h1, h2, label, div {
+        margin-top: 0 !important;
+        margin-bottom: 0.1rem !important; /* Minimal spacing for text/labels */
+        padding: 0 !important;
+    }
+
+    /* Force text to be black */
+    .text-gray-700, .text-gray-900, h1, h2, p, label {
+        color: #000 !important;
+    }
+
+    /* Prevent Images from being too large (Pilgrim Photo) */
+    img {
+        max-width: 1.5in !important;
+        max-height: 2in !important;
+        display: block !important;
+    }
+}
