@@ -19,6 +19,7 @@ import {
   MdRemoveCircle,
 } from "react-icons/md";
 import HajjForm from "./HajjForm";
+import HajjReport from "./Report/HajjReport";
 
 // --- Navigation Items ---
 const NAV_ITEMS = [
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
     icon: <MdEdit />,
     children: [
       { key: "Form", label: " Form", icon: <MdPerson /> },
+      
     ],
   },
   {
@@ -35,16 +37,7 @@ const NAV_ITEMS = [
     label: "Reports",
     icon: <MdBarChart />,
     children: [
-      {
-        key: "PortfolioTransactoin",
-        label: "Portfolio Transactoin",
-        icon: <MdDescription />,
-        children: [
-          // { key: "generalportfolio", label: "General Portfolio", icon: <MdBarChart /> },
-          // { key: "staffportfolio", label: "Staff Portfolio", icon: <MdFormatListBulleted /> },
-          // { key: "groupReportTransactionGPT", label: "Group Report", icon: <MdFormatListBulleted /> },
-        ],
-      },
+     { key: "HajjReport", label: "Hajj Report ", icon: <MdBarChart /> },
      
     ],
   },
@@ -119,6 +112,7 @@ function AdminPanel() {
     switch (activeTab) {
       case "dashboard": return <Dashboard />;
       case "Form": return <HajjForm />;
+      case "HajjReport": return <HajjReport />;
 
       default: return <Placeholder title={activeTab} />;
     }

@@ -7,6 +7,7 @@ const HajjForm = () => {
 
 
     const initialFormData = {
+        applicationYear: "",
         residingInSL: "Yes",
         residenceCountry: "",
         residenceAgency: "",
@@ -127,6 +128,7 @@ const HajjForm = () => {
             "kinPhone",
             "pilgrimPhoto",   // ✅ photo required
             "passportPhoto",  // ✅ photo required
+            "applicationYear",
         ];
 
         // Find missing fields
@@ -221,18 +223,18 @@ const HajjForm = () => {
         }
     };
 
-   const handlePrint = (submissionData) => {
-    // Helper function to safely get data or a placeholder
-    const getVal = (key) => submissionData[key] || 'N/A';
+    const handlePrint = (submissionData) => {
+        // Helper function to safely get data or a placeholder
+        const getVal = (key) => submissionData[key] || 'N/A';
 
-    // Format the Photo URL for printing (or use a placeholder)
-    // Photo is embedded as a Base64 string from the form data
-    const pilgrimPhotoHtml = submissionData.pilgrimPhoto
-        ? `<img src="${submissionData.pilgrimPhoto}" alt="Pilgrim Photo" style="width: 1.5in; height: 2in; object-fit: cover; border: 2px solid #ccc; margin-bottom: 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact;" />`
-        : `<div style="width: 1.5in; height: 2in; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; text-align: center; color: #555;">2-Inch Photo Missing</div>`;
+        // Format the Photo URL for printing (or use a placeholder)
+        // Photo is embedded as a Base64 string from the form data
+        const pilgrimPhotoHtml = submissionData.pilgrimPhoto
+            ? `<img src="${submissionData.pilgrimPhoto}" alt="Pilgrim Photo" style="width: 1.5in; height: 2in; object-fit: cover; border: 2px solid #ccc; margin-bottom: 5px; -webkit-print-color-adjust: exact; print-color-adjust: exact;" />`
+            : `<div style="width: 1.5in; height: 2in; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; text-align: center; color: #555;">2-Inch Photo Missing</div>`;
 
-    // Generate print-friendly HTML content using the submissionData
-    const printContent = `
+        // Generate print-friendly HTML content using the submissionData
+        const printContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -432,19 +434,19 @@ const HajjForm = () => {
     </html>
 `;
 
-    // Open a new window, write the content, and trigger print
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-        printWindow.focus();
+        // Open a new window, write the content, and trigger print
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.focus();
 
-        // Use a slight delay to ensure the background image/CSS is parsed before printing
-        setTimeout(() => {
-            printWindow.print();
-        }, 500);
-    }
-};
+            // Use a slight delay to ensure the background image/CSS is parsed before printing
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+    };
 
     return (
         <div className="w-full max-w-4xl min-h-screen flex justify-center items-center bg-gray-100 p-2 sm:p-4 hajj-form-wrapper">
@@ -482,6 +484,17 @@ const HajjForm = () => {
                                 HAJJ 2026 APPLICATION FORM
                             </h1>
                         </header>
+                        <div>
+                            <label className="block text-gray-700">Application Year</label>
+                            <input
+                                type="number"
+                                name="applicationYear"
+                                value={formData.applicationYear}
+                                onChange={handleInputChange}
+                                className="w-full border-b border-gray-400 focus:outline-none"
+                            />
+                        </div>
+
 
                         <div className="bg-white/50 p-6 rounded-lg mb-6">
                             <div className="bg-gray-200 p-3 px-5 rounded-lg font-semibold text-gray-900 border-l-4 border-blue-500 mb-6">
@@ -622,20 +635,49 @@ const HajjForm = () => {
                                     <input type="text" name="passportIssuePlace" value={formData.passportIssuePlace} onChange={handleInputChange} className="w-full border-b border-gray-400 focus:outline-none" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label className="block text-gray-700">Date of issue</label>
-                                    <input type="date" name="passportIssueDate" value={formData.passportIssueDate} onChange={handleInputChange} className="w-full border-b border-gray-400 focus:outline-none" />
-                                </div>
-                                <div>
-                                    <label className="block text-gray-700">Date of expiry</label>
-                                    <input type="date" name="passportExpiryDate" value={formData.passportExpiryDate} onChange={handleInputChange} className="w-full border-b border-gray-400 focus:outline-none" />
-                                </div>
+                            {/* Date of Issue */}
+                            <div>
+                                <label className="block text-gray-700">Date of issue</label>
+                                <input
+                                    type="date"
+                                    name="passportIssueDate"
+                                    value={formData.passportIssueDate || ""}
+                                    onChange={(e) => {
+                                        handleInputChange(e);
+
+                                        // Auto-calculate expiry date (5 years later)
+                                        const issueDate = new Date(e.target.value);
+                                        if (!isNaN(issueDate)) {
+                                            const expiryDate = new Date(issueDate);
+                                            expiryDate.setFullYear(expiryDate.getFullYear() + 5);
+
+                                            setFormData((prev) => ({
+                                                ...prev,
+                                                passportExpiryDate: expiryDate.toISOString().split("T")[0], // format yyyy-mm-dd
+                                            }));
+                                        }
+                                    }}
+                                    className="w-full border-b border-gray-400 focus:outline-none"
+                                />
                             </div>
+
+                            {/* Date of Expiry */}
+                            <div>
+                                <label className="block text-gray-700">Date of expiry</label>
+                                <input
+                                    type="date"
+                                    name="passportExpiryDate"
+                                    value={formData.passportExpiryDate || ""}
+                                    onChange={handleInputChange}
+                                    className="w-full border-b border-gray-400 focus:outline-none"
+                                    readOnly
+                                />
+                            </div>
+
 
                             <div className="flex flex-col items-center">
                                 <label>Passport Book</label>
-                                <div className="border-8 border-dashed w-36 h-48 flex items-center justify-center bg-white/30">
+                                <div className="border-8 border-dashed w-60 h-48 flex items-center justify-center bg-white/30">
                                     {formData.passportPhoto ? (
                                         <img src={formData.passportPhoto} alt="Passport" className="w-full h-full object-cover" />
                                     ) : (
