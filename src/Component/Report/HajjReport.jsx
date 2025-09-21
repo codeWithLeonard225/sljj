@@ -93,12 +93,12 @@ const HajjApplicantsReport = () => {
                     onChange={(e) => setApplicationYear(e.target.value)}
                     className="border px-3 py-2 rounded-md w-32"
                 />
-                <button
+                {/* <button
                     onClick={fetchApplicants}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
                 >
                     Filter
-                </button>
+                </button> */}
             </div>
 
             {/* Count */}

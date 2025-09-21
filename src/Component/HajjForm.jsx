@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CameraCapture from "./CameraCapture";
+import CloudinaryImageUploader from "./CaptureCamera/CloudinaryImageUploader"; // adjust path
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase"; // adjust path if needed
 
@@ -64,8 +65,57 @@ const HajjForm = () => {
     // State to track if we are editing a submission (holds the Firebase document ID)
     const [editingId, setEditingId] = useState(null);
 
+    // Cloudinary config
+    const CLOUD_NAME = "doucdnzij";
+    const UPLOAD_PRESET = "Nardone";
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
+    const handleCameraCapture = async (base64Data) => {
+        setIsUploading(true);
+        setUploadProgress(0);
+        try {
+            const res = await fetch(base64Data);
+            const blob = await res.blob();
+            if (blob.size > MAX_FILE_SIZE) {
+                toast.error("Image is too large. Max size is 5MB.");
+                setIsUploading(false);
+                return;
+            }
 
+            const xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener("progress", (e) => {
+                if (e.lengthComputable) {
+                    setUploadProgress(Math.round((e.loaded * 100) / e.total));
+                }
+            });
+
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    setIsUploading(false);
+                    setShowCamera(false);
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        handleUploadSuccess(data.secure_url, data.public_id);
+                    } else {
+                        toast.error("Camera upload failed. Please try again.");
+                    }
+                }
+            };
+
+            const formDataObj = new FormData();
+            formDataObj.append("file", blob);
+            formDataObj.append("upload_preset", UPLOAD_PRESET);
+            formDataObj.append("folder", "Student_Photos");
+
+            xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+            xhr.send(formDataObj);
+        } catch (err) {
+            console.error("Camera upload failed:", err);
+            toast.error("Failed to upload image from camera.");
+            setIsUploading(false);
+            setShowCamera(false);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -115,30 +165,30 @@ const HajjForm = () => {
         const requiredFields = [
             "firstName",
             "lastName",
-            "gender",
-            "dob",
-            "passportNumber",
-            "passportIssuePlace",
-            "passportIssueDate",
-            "passportExpiryDate",
-            "residentialAddress",
-            "phone",
-            "kinFirstName",
-            "kinRelationship",
-            "kinPhone",
-            "pilgrimPhoto",   // ✅ photo required
-            "passportPhoto",  // ✅ photo required
-            "applicationYear",
+            // "gender",
+            // "dob",
+            // "passportNumber",
+            // "passportIssuePlace",
+            // "passportIssueDate",
+            // "passportExpiryDate",
+            // "residentialAddress",
+            // "phone",
+            // "kinFirstName",
+            // "kinRelationship",
+            // "kinPhone",
+            // "pilgrimPhoto",  
+            // "passportPhoto",  
+            // "applicationYear",
         ];
 
-        // Find missing fields
+        // Validation check
         const missingFields = requiredFields.filter(
-            (field) => !formData[field] || formData[field].trim?.() === ""
+            (field) => !formData[field] || formData[field].toString().trim() === ""
         );
 
         if (missingFields.length > 0) {
-            alert(`Please fill in all required fields:\n${missingFields.join(", ")}`);
-            return; // stop submission
+            alert(`Please fill all required fields: ${missingFields.join(", ")}`);
+            return; // stop form submission
         }
 
         const dataToSave = {
@@ -147,7 +197,7 @@ const HajjForm = () => {
             submittedAt: new Date().toISOString(),
         };
 
-        setLoading(true); // start progress
+        setLoading(true);
 
         try {
             if (editingId) {
@@ -161,15 +211,13 @@ const HajjForm = () => {
 
             await fetchSubmissions();
             resetForm();
-
         } catch (error) {
             console.error(`Error ${editingId ? "updating" : "adding"} document: `, error);
             alert(`Error ${editingId ? "updating" : "submitting"} form. Please try again.`);
         } finally {
-            setLoading(false); // stop progress
+            setLoading(false);
         }
     };
-
 
 
     const fetchSubmissions = async () => {
@@ -209,7 +257,16 @@ const HajjForm = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    const DELETE_PASSWORD = "1718"; // change this to your preferred password
+
     const handleDelete = async (id) => {
+        const password = prompt("Enter password to delete this application:");
+
+        if (password !== DELETE_PASSWORD) {
+            alert("Incorrect password. Deletion canceled!");
+            return;
+        }
+
         if (window.confirm("Are you sure you want to delete this application?")) {
             try {
                 await deleteDoc(doc(db, "hajjApplicants", id));
@@ -222,6 +279,7 @@ const HajjForm = () => {
             }
         }
     };
+
 
     const handlePrint = (submissionData) => {
         // Helper function to safely get data or a placeholder
@@ -588,35 +646,33 @@ const HajjForm = () => {
                                 <label>Pilgrim Photo</label>
                                 <div className="border-8 border-dashed w-36 h-48 flex items-center justify-center bg-white/30">
                                     {formData.pilgrimPhoto ? (
-                                        <img src={formData.pilgrimPhoto} alt="Pilgrim" className="w-full h-full object-cover" />
+                                        <img
+                                            src={formData.pilgrimPhoto}
+                                            alt="Pilgrim"
+                                            className="w-full h-full object-cover"
+                                        />
                                     ) : (
                                         "2-inch Photo"
                                     )}
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-2 mt-2"> {/* Buttons are stacked on mobile */}
-                                    <input
-                                        id="pilgrim-photo-input"
-                                        type="file"
-                                        accept="image/*"
-                                        hidden
-                                        onChange={(e) => handlePhotoChange(e, "pilgrimPhoto")}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => document.getElementById("pilgrim-photo-input").click()}
-                                        className="w-full sm:w-auto bg-blue-500 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Upload File
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCameraFor("pilgrim")}
-                                        className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Use Camera
-                                    </button>
-                                </div>
+
+                                {/* Pilgrim Photo */}
+                                <CloudinaryImageUploader
+                                    field="pilgrimPhoto"
+                                    onUploadSuccess={(url, field) =>
+                                        setFormData((prev) => ({ ...prev, [field]: url }))
+                                    }
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCameraFor("pilgrim")}
+                                    className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold mt-2"
+                                >
+                                    Use Camera
+                                </button>
                             </div>
+
                         </div>
 
                         <div className="bg-white/50 p-6 rounded-lg mb-6">
@@ -679,35 +735,33 @@ const HajjForm = () => {
                                 <label>Passport Book</label>
                                 <div className="border-8 border-dashed w-60 h-48 flex items-center justify-center bg-white/30">
                                     {formData.passportPhoto ? (
-                                        <img src={formData.passportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                                        <img
+                                            src={formData.passportPhoto}
+                                            alt="Passport"
+                                            className="w-full h-full object-cover"
+                                        />
                                     ) : (
                                         "Passport Photo"
                                     )}
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-2 mt-2"> {/* Buttons are stacked on mobile */}
-                                    <input
-                                        id="passport-photo-input"
-                                        type="file"
-                                        accept="image/*"
-                                        hidden
-                                        onChange={(e) => handlePhotoChange(e, "passportPhoto")}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => document.getElementById("passport-photo-input").click()}
-                                        className="w-full sm:w-auto bg-blue-500 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Upload File
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCameraFor("passport")}
-                                        className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Use Camera
-                                    </button>
-                                </div>
+
+                                {/* Passport Photo */}
+                                <CloudinaryImageUploader
+                                    field="passportPhoto"
+                                    onUploadSuccess={(url, field) =>
+                                        setFormData((prev) => ({ ...prev, [field]: url }))
+                                    }
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCameraFor("passport")}
+                                    className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold mt-2"
+                                >
+                                    Use Camera
+                                </button>
                             </div>
+
                         </div>
 
                         <div className="bg-white/50 p-6 rounded-lg mb-6">
@@ -911,14 +965,24 @@ const HajjForm = () => {
                         </div>
                     </div>
                 </div>
+                {/* ✅ Camera Capture still works */}
                 {showCameraFor && (
                     <CameraCapture
-                        setPhoto={(data) => {
-                            if (showCameraFor === "pilgrim") {
-                                setFormData(prevData => ({ ...prevData, pilgrimPhoto: data }));
-                            } else if (showCameraFor === "passport") {
-                                setFormData(prevData => ({ ...prevData, passportPhoto: data }));
-                            }
+                        setPhoto={async (base64Data) => {
+                            // pass to uploader so it gets stored in Cloudinary
+                            const uploaderRef = document.createElement("div");
+                            const uploader = (
+                                <CloudinaryImageUploader
+                                    onUploadSuccess={(url) => {
+                                        if (showCameraFor === "pilgrim") {
+                                            setFormData((prev) => ({ ...prev, pilgrimPhoto: url }));
+                                        } else if (showCameraFor === "passport") {
+                                            setFormData((prev) => ({ ...prev, passportPhoto: url }));
+                                        }
+                                    }}
+                                />
+                            );
+                            uploader.handleCameraUpload(base64Data); // call uploader method directly
                         }}
                         onClose={() => setShowCameraFor(null)}
                     />
