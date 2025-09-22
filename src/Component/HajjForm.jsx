@@ -49,6 +49,7 @@ const HajjForm = () => {
         deported: "No",
         pilgrimPhoto: null,
         passportPhoto: null,
+        slh6: "",
     };
     const [formData, setFormData] = useState(initialFormData);
     const [showCameraFor, setShowCameraFor] = useState(null);
@@ -165,20 +166,21 @@ const HajjForm = () => {
         const requiredFields = [
             "firstName",
             "lastName",
-            // "gender",
-            // "dob",
-            // "passportNumber",
-            // "passportIssuePlace",
-            // "passportIssueDate",
-            // "passportExpiryDate",
-            // "residentialAddress",
-            // "phone",
-            // "kinFirstName",
-            // "kinRelationship",
-            // "kinPhone",
-            // "pilgrimPhoto",  
-            // "passportPhoto",  
-            // "applicationYear",
+            "gender",
+            "dob",
+            "passportNumber",
+            "passportIssuePlace",
+            "passportIssueDate",
+            "passportExpiryDate",
+            "residentialAddress",
+            "phone",
+            "kinFirstName",
+            "kinRelationship",
+            "kinPhone",
+            "pilgrimPhoto",  
+            "passportPhoto",  
+            "applicationYear",
+            "slh6",
         ];
 
         // Validation check
@@ -436,11 +438,13 @@ const HajjForm = () => {
                         <div class="info-item"><strong>DOB / Age:</strong> ${getVal('dob')} / ${getVal('age')}</div>
                         <div class="info-item"><strong>Occupation:</strong> ${getVal('occupation')}</div>
                         <div class="info-item"><strong>Hajj Before:</strong> ${getVal('hajjBefore')} ${getVal('hajjBefore') === 'Yes' ? `(${getVal('hajjYear')})` : ''}</div>
-                    </div>
-                </div>
-                <div style="width: 1.5in; margin-left: 20px; text-align: center; flex-shrink: 0;">
-                    ${pilgrimPhotoHtml}
-                    <p style="font-size: 8pt; margin: 0;">Pilgrim Photo</p>
+                        </div>
+                        </div>
+                        <div style="width: 1.5in; margin-left: 20px; text-align: center; flex-shrink: 0;">
+                        ${pilgrimPhotoHtml}
+                        <p style="font-size: 8pt; margin: 0;">Pilgrim Photo</p>
+                        <div class="info-item"><strong>SLH6:</strong> ${getVal('slh6')}</div>
+
                 </div>
             </div>
 
@@ -954,9 +958,16 @@ const HajjForm = () => {
 
                             <div className="flex flex-col items-start w-full sm:w-1/3">
                                 <div className="flex items-center space-x-2 mb-4">
-                                    <p className="text-sm">SLHS No</p>
-                                    <input type="text" className="w-full border-b border-gray-400" />
+                                    <label className="text-sm">SLH6 No</label>
+                                    <input
+                                        type="text"
+                                        name="slh6"
+                                        value={formData.slh6}
+                                        onChange={handleInputChange}
+                                        className="w-full border-b border-gray-400 focus:outline-none"
+                                    />
                                 </div>
+
                                 <div className="flex items-center space-x-2 w-full">
                                     <p className="text-sm">Date</p>
                                     <input type="date" className="w-full border-b border-gray-400" />
