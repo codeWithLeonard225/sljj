@@ -4,7 +4,6 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-
 const HajjApplicantsReport = () => {
     const [applicationYear, setApplicationYear] = useState(new Date().getFullYear().toString());
     const [applicants, setApplicants] = useState([]);
@@ -20,7 +19,22 @@ const HajjApplicantsReport = () => {
             );
             const querySnapshot = await getDocs(q);
             const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-            setApplicants(data);
+
+            // --- FIX START ---
+            // Sort the data by the 'submittedAt' timestamp in descending order
+            // This ensures the most recent applications appear first.
+            const sortedData = data.sort((a, b) => {
+                // Safely convert ISO strings to Date objects for comparison
+                const dateA = a.submittedAt ? new Date(a.submittedAt) : new Date(0);
+                const dateB = b.submittedAt ? new Date(b.submittedAt) : new Date(0);
+                
+                // Return b - a for descending order (newest first)
+                return dateB - dateA;
+            });
+
+            setApplicants(sortedData);
+            // --- FIX END ---
+
         } catch (error) {
             console.error("Error fetching applicants:", error);
         } finally {
@@ -31,22 +45,18 @@ const HajjApplicantsReport = () => {
     useEffect(() => {
         fetchApplicants();
     }, [applicationYear]);
+    
+    // ... (rest of your component remains the same)
 
-
-
-    // Add this function inside your component
     const formatDate = (dateString) => {
         if (!dateString) return "";
         const date = new Date(dateString);
         const day = date.getDate();
-        const month = date.toLocaleString("default", { month: "short" }); // "Jan", "Feb", etc.
+        const month = date.toLocaleString("default", { month: "short" });
         const year = date.getFullYear();
-        return `${day}/${month}/${year}`; // e.g., 4/Feb/2025
+        return `${day}/${month}/${year}`;
     };
 
-
-
-    // Generate PDF
     const generatePDF = () => {
         const doc = new jsPDF();
 
@@ -56,6 +66,7 @@ const HajjApplicantsReport = () => {
         doc.setFontSize(12);
         doc.text(`Total Applicants: ${applicants.length}`, 14, 30);
 
+        // This will now use the sorted `applicants` state
         const tableData = applicants.map((a) => [
             a.lastName || "",
             a.firstName || "",
@@ -66,7 +77,6 @@ const HajjApplicantsReport = () => {
             formatDate(a.passportExpiryDate),
         ]);
 
-
         autoTable(doc, {
             startY: 40,
             head: [["Last Name", "First Name", "Gender", "DOB", "Passport No.", "Issue Date", "Expiry Date"]],
@@ -75,8 +85,6 @@ const HajjApplicantsReport = () => {
             styles: { fontSize: 10, cellPadding: 3 },
         });
 
-
-
         doc.save(`HajjApplicants_${applicationYear}.pdf`);
     };
 
@@ -84,7 +92,6 @@ const HajjApplicantsReport = () => {
         <div className="p-6 bg-white rounded-lg shadow-lg max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold mb-4 text-blue-700">Hajj Applicants Report</h2>
 
-            {/* Filter by Application Year */}
             <div className="mb-4 flex items-center space-x-4">
                 <label className="text-gray-700 font-semibold">Application Year:</label>
                 <input
@@ -93,20 +100,12 @@ const HajjApplicantsReport = () => {
                     onChange={(e) => setApplicationYear(e.target.value)}
                     className="border px-3 py-2 rounded-md w-32"
                 />
-                {/* <button
-                    onClick={fetchApplicants}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
-                >
-                    Filter
-                </button> */}
             </div>
 
-            {/* Count */}
             <p className="mb-4 font-medium text-gray-800">
                 Total Applicants: {loading ? "Loading..." : applicants.length}
             </p>
 
-            {/* Table */}
             <div className="overflow-x-auto">
                 <table className="min-w-full border border-gray-200">
                     <thead className="bg-gray-100">
@@ -131,7 +130,6 @@ const HajjApplicantsReport = () => {
                                     <td className="px-4 py-2">{a.passportNumber}</td>
                                     <td className="px-4 py-2">{formatDate(a.passportIssueDate)}</td>
                                     <td className="px-4 py-2">{formatDate(a.passportExpiryDate)}</td>
-
                                 </tr>
                             ))
                         ) : (
@@ -145,7 +143,6 @@ const HajjApplicantsReport = () => {
                 </table>
             </div>
 
-            {/* Print Button */}
             <div className="mt-6 text-right">
                 <button
                     onClick={generatePDF}

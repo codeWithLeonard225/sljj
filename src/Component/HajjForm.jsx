@@ -229,8 +229,16 @@ const HajjForm = () => {
                 id: doc.id,
                 ...doc.data()
             }));
-            // Sort to show the latest at the top
-            setSubmissions(data.reverse());
+           const sortedData = data.sort((a, b) => {
+                // Convert the ISO string to a Date object for comparison
+                const dateA = a.submittedAt ? new Date(a.submittedAt) : new Date(0); // Handle missing dates
+                const dateB = b.submittedAt ? new Date(b.submittedAt) : new Date(0); // Handle missing dates
+                
+                // Compare the dates. Subtracting b from a gives descending order.
+                return dateB - dateA;
+            });
+            
+            setSubmissions(sortedData);
         } catch (error) {
             console.error("Error fetching submissions: ", error);
         }
@@ -287,6 +295,13 @@ const HajjForm = () => {
         // Helper function to safely get data or a placeholder
         const getVal = (key) => submissionData[key] || 'N/A';
 
+          // Full name helper (prevents extra spaces if middleName is empty)
+    const getFullName = () => {
+        const first = submissionData.firstName || '';
+        const middle = submissionData.middleName ? ` ${submissionData.middleName}` : '';
+        const last = submissionData.lastName || '';
+        return `${first}${middle} ${last}`.trim();
+    };
         // Format the Photo URL for printing (or use a placeholder)
         // Photo is embedded as a Base64 string from the form data
         const pilgrimPhotoHtml = submissionData.pilgrimPhoto
@@ -368,7 +383,7 @@ const HajjForm = () => {
                 padding-bottom: 3px;
             }
             .info-item strong { 
-                display: inline-block; 
+               
                 font-weight: bold; 
                 color: #555; 
                 min-width: 120px;
@@ -432,7 +447,8 @@ const HajjForm = () => {
                 <div style="flex-grow: 1;">
                     <div class="section-title">PILGRIM'S PERSONAL INFORMATION</div>
                     <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
-                        <div class="info-item"><strong>Full Name:</strong> ${getVal('firstName')} ${getVal('middleName')} ${getVal('lastName')}</div>
+                      
+                         <div class="info-item"><strong>Full Name:</strong> ${getFullName()}</div>
                         <div class="info-item"><strong>Marital Status:</strong> ${getVal('maritalStatus')}</div>
                         <div class="info-item"><strong>Gender:</strong> ${getVal('gender')}</div>
                         <div class="info-item"><strong>DOB / Age:</strong> ${getVal('dob')} / ${getVal('age')}</div>
