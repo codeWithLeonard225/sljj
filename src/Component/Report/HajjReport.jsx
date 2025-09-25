@@ -29,7 +29,7 @@ const HajjApplicantsReport = () => {
                 const dateB = b.submittedAt ? new Date(b.submittedAt) : new Date(0);
                 
                 // Return b - a for descending order (newest first)
-                return dateB - dateA;
+                return dateA - dateB;
             });
 
             setApplicants(sortedData);

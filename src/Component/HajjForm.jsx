@@ -235,7 +235,7 @@ const HajjForm = () => {
                 const dateB = b.submittedAt ? new Date(b.submittedAt) : new Date(0); // Handle missing dates
                 
                 // Compare the dates. Subtracting b from a gives descending order.
-                return dateB - dateA;
+                return dateA - dateB;
             });
             
             setSubmissions(sortedData);
@@ -830,7 +830,7 @@ const HajjForm = () => {
                         <div className="bg-white/50 p-6 rounded-lg mb-6">
                             <div className="bg-gray-200 p-3 px-5 rounded-lg font-semibold text-gray-900 border-l-4 border-blue-500 mb-6">
                                 <h2 className="text-xl font-semibold">
-                                    NEXT OF KING
+                                    NEXT OF KIN
                                 </h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
