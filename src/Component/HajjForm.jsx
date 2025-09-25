@@ -477,11 +477,11 @@ const HajjForm = () => {
 
             <div class="section-title section-block">NEXT OF KIN</div>
             <div class="info-grid section-block">
-                <div class="info-item"><strong>Kin Name:</strong> ${getVal('kinFirstName')}</div>
+                <div class="info-item"><strong>Full Name:</strong> ${getVal('kinFirstName')}</div>
                 <div class="info-item"><strong>Relationship:</strong> ${getVal('kinRelationship')}</div>
-                <div class="info-item" style="grid-column: span 2;"><strong>Kin Address:</strong> ${getVal('kinAddress')}</div>
-                <div class="info-item"><strong>Kin Phone:</strong> ${getVal('kinPhone')}</div>
-                <div class="info-item"><strong>Kin Email:</strong> ${getVal('kinEmail')}</div>
+                <div class="info-item" style="grid-column: span 2;"><strong>Address:</strong> ${getVal('kinAddress')}</div>
+                <div class="info-item"><strong>Phone:</strong> ${getVal('kinPhone')}</div>
+                <div class="info-item"><strong>Email:</strong> ${getVal('kinEmail')}</div>
             </div>
 
             <div class="section-title section-block">HEALTH & LEGAL DECLARATION</div>
