@@ -222,27 +222,51 @@ const HajjForm = () => {
     };
 
 
-    const fetchSubmissions = async () => {
-        try {
-            const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
-            const data = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-           const sortedData = data.sort((a, b) => {
-                // Convert the ISO string to a Date object for comparison
-                const dateA = a.submittedAt ? new Date(a.submittedAt) : new Date(0); // Handle missing dates
-                const dateB = b.submittedAt ? new Date(b.submittedAt) : new Date(0); // Handle missing dates
-                
-                // Compare the dates. Subtracting b from a gives descending order.
-                return dateA - dateB;
-            });
+   const fetchSubmissions = async () => {
+    try {
+        const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
+        const data = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+
+        // --- UPDATED SORTING LOGIC ---
+        const sortedData = data.sort((a, b) => {
+            // Get the slh6 values, defaulting to a string that sorts last (like a large number in string format)
+            const slh6A = a.slh6 || '999999999';
+            const slh6B = b.slh6 || '999999999';
+
+            // Convert the slh6 string (e.g., "001", "010") to an integer for proper numerical sorting.
+            // Using parseInt() handles the leading zeros correctly for the number comparison.
+            const numA = parseInt(slh6A, 10);
+            const numB = parseInt(slh6B, 10);
+
+            // Check if the values are valid numbers after parsing (important for robust code)
+            const isNumA = !isNaN(numA);
+            const isNumB = !isNaN(numB);
+
+            if (isNumA && isNumB) {
+                // If both are numbers, sort ascending numerically (001, 002, 003...)
+                return numA - numB;
+            } else if (isNumA) {
+                // If A is a number and B is not, A comes first
+                return -1; 
+            } else if (isNumB) {
+                // If B is a number and A is not, B comes first
+                return 1;
+            }
             
-            setSubmissions(sortedData);
-        } catch (error) {
-            console.error("Error fetching submissions: ", error);
-        }
-    };
+            // If neither are numbers (or both are missing), fall back to a string comparison
+            // to maintain a consistent order for non-numeric or missing entries.
+            return slh6A.localeCompare(slh6B);
+        });
+        // --- END UPDATED SORTING LOGIC ---
+        
+        setSubmissions(sortedData);
+    } catch (error) {
+        console.error("Error fetching submissions: ", error);
+    }
+};
 
     // Fetch data when component mounts
     useEffect(() => {
