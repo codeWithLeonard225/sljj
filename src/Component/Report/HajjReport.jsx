@@ -9,6 +9,15 @@ const HajjApplicantsReport = () => {
     const [applicants, setApplicants] = useState([]);
     const [loading, setLoading] = useState(false);
 
+    // Helper function to concatenate First Name and Middle Name
+    const getFullName = (firstName, middleName) => {
+        // Concatenates firstName with middleName (if it exists and is not just whitespace)
+        if (middleName && middleName.trim()) {
+            return `${firstName} ${middleName.trim()}`;
+        }
+        return firstName;
+    };
+
     // Fetch data (using the slh6 sort logic from the previous step)
     const fetchApplicants = async () => {
         try {
@@ -65,7 +74,7 @@ const HajjApplicantsReport = () => {
         return `${day}/${month}/${year}`;
     };
 
-    // --- NEW EXPORT FUNCTION: CSV (Excel Compatible) ---
+    // --- UPDATED EXPORT FUNCTION: CSV (Excel Compatible) ---
     const exportToExcel = () => {
         if (applicants.length === 0) {
             alert("No data to export.");
@@ -74,12 +83,15 @@ const HajjApplicantsReport = () => {
 
         // 1. Define the CSV header based on the table columns
         const headers = [
-            "SLH6", "Last Name", "First Name", "Gender", "DOB", 
+            "SLH6", "Last Name", "First/Middle Name", "Gender", "DOB", 
             "Passport No.", "Issue Date", "Expiry Date", "Phone", "Application Year"
         ];
         
         // 2. Map the data to CSV rows
         const csvRows = applicants.map(a => {
+            // Get the combined first/middle name
+            const combinedFirstName = getFullName(a.firstName || '', a.middleName || '');
+            
             // A helper to handle values that might contain commas or newlines by wrapping them in quotes
             const escapeField = (field) => {
                 if (field === null || field === undefined) return '';
@@ -94,7 +106,7 @@ const HajjApplicantsReport = () => {
             return [
                 escapeField(a.slh6 || ''),
                 escapeField(a.lastName || ''),
-                escapeField(a.firstName || ''),
+                escapeField(combinedFirstName), // USE CONCATENATED NAME
                 escapeField(a.gender || ''),
                 escapeField(formatDate(a.dob)),
                 escapeField(a.passportNumber || ''),
@@ -123,7 +135,7 @@ const HajjApplicantsReport = () => {
         document.body.removeChild(link);
     };
 
-    // Existing PDF function
+    // --- UPDATED PDF FUNCTION ---
     const generatePDF = () => {
         const doc = new jsPDF();
 
@@ -133,21 +145,27 @@ const HajjApplicantsReport = () => {
         doc.setFontSize(12);
         doc.text(`Total Applicants: ${applicants.length}`, 14, 30);
 
-        // Include slh6 in the PDF table
-        const tableData = applicants.map((a) => [
-            a.slh6 || "", // NEW: slh6
-            a.lastName || "",
-            a.firstName || "",
-            a.gender || "",
-            formatDate(a.dob),
-            a.passportNumber || "",
-            formatDate(a.passportIssueDate),
-            formatDate(a.passportExpiryDate),
-        ]);
+        // Map data for the PDF table
+        const tableData = applicants.map((a) => {
+             // Get the combined first/middle name
+            const combinedFirstName = getFullName(a.firstName || '', a.middleName || '');
+
+            return [
+                a.slh6 || "", 
+                a.lastName || "",
+                combinedFirstName, // USE CONCATENATED NAME
+                a.gender || "",
+                formatDate(a.dob),
+                a.passportNumber || "",
+                formatDate(a.passportIssueDate),
+                formatDate(a.passportExpiryDate),
+            ];
+        });
 
         autoTable(doc, {
             startY: 40,
-            head: [["SLH6", "Last Name", "First Name", "Gender", "DOB", "Passport No.", "Issue Date", "Expiry Date"]], // NEW: SLH6 Header
+            // UPDATED HEADERS
+            head: [["SLH6", "Last Name", "First/Middle Name", "Gender", "DOB", "Passport No.", "Issue Date", "Expiry Date"]], 
             body: tableData,
             headStyles: { fillColor: [0, 102, 204], textColor: 255, fontStyle: "bold" },
             styles: { fontSize: 10, cellPadding: 3 },
@@ -178,10 +196,10 @@ const HajjApplicantsReport = () => {
                 <table className="min-w-full border border-gray-200">
                     <thead className="bg-gray-100">
                         <tr>
-                             {/* NEW COLUMN: SLH6 */}
                             <th className="px-4 py-2 text-left">SLH6</th> 
                             <th className="px-4 py-2 text-left">Last Name</th>
-                            <th className="px-4 py-2 text-left">First Name</th>
+                            {/* UPDATED HEADER: Combining First and Middle Name */}
+                            <th className="px-4 py-2 text-left">First/Middle Name</th> 
                             <th className="px-4 py-2 text-left">Gender</th>
                             <th className="px-4 py-2 text-left">DOB</th>
                             <th className="px-4 py-2 text-left">Passport No.</th>
@@ -193,10 +211,12 @@ const HajjApplicantsReport = () => {
                         {applicants.length > 0 ? (
                             applicants.map((a) => (
                                 <tr key={a.id} className="border-t">
-                                     {/* NEW COLUMN DATA: slh6 */}
                                     <td className="px-4 py-2 font-semibold">{a.slh6}</td>
                                     <td className="px-4 py-2">{a.lastName}</td>
-                                    <td className="px-4 py-2">{a.firstName}</td>
+                                    {/* UPDATED CELL DATA: Using the helper function */}
+                                    <td className="px-4 py-2">
+                                        {getFullName(a.firstName || '', a.middleName || '')}
+                                    </td>
                                     <td className="px-4 py-2">{a.gender}</td>
                                     <td className="px-4 py-2">{formatDate(a.dob)}</td>
                                     <td className="px-4 py-2">{a.passportNumber}</td>
@@ -216,7 +236,6 @@ const HajjApplicantsReport = () => {
             </div>
 
             <div className="mt-6 flex justify-end space-x-3">
-                {/* NEW EXPORT BUTTON */}
                 <button
                     onClick={exportToExcel}
                     className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition"
