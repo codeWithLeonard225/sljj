@@ -58,7 +58,7 @@ const HajjForm = () => {
 
     const districts = [
         'Bo', 'Bonthe', 'Falaba', 'Kailahun', 'Kambia', 'Kenema', 'Kono', 'Moyamba',
-        'Portloko', 'Pujehun', 'Tonkolili', 'W. Urban', 'W. Rural', 'Koinadugu'
+        'Portloko', 'Pujehun', 'Tonkolili', 'W. Urban', 'W. Rural', 'Koinadugu', 'Bombali', 'Karena'
     ];
 
     // State for the table data

@@ -20,6 +20,7 @@ import {
 } from "react-icons/md";
 import HajjForm from "./HajjForm";
 import HajjReport from "./Report/HajjReport";
+import HajjDashboard from "./DashBoard/HajjDashboard";
 
 // --- Navigation Items ---
 const NAV_ITEMS = [
@@ -110,7 +111,7 @@ function AdminPanel() {
 
    const renderContent = () => {
     switch (activeTab) {
-      case "dashboard": return <Dashboard />;
+      case "dashboard": return <HajjDashboard />;
       case "Form": return <HajjForm />;
       case "HajjReport": return <HajjReport />;
 
