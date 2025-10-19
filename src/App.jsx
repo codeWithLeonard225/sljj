@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import AdminLogin from "./Component/UserStoragePage/AdminLogin";
 import AdminPanel from "./Component/Admin";
+import PaymentReminderPage from "./Component/PaymentReminderPage";
 
 // ProtectedRoute component
 const ProtectedRoute = ({ children }) => {
@@ -18,17 +19,17 @@ export default function App() {
     <Router>
       <Routes>
         {/* Login Page */}
-        <Route path="/login" element={<AdminLogin />} />
+        <Route path="/login" element={<PaymentReminderPage />} />
 
         {/* Protected Admin Panel */}
-        <Route
+        {/* <Route
           path="/admin"
           element={
             <ProtectedRoute>
               <AdminPanel />
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         {/* Default redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
