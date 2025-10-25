@@ -19,17 +19,17 @@ export default function App() {
     <Router>
       <Routes>
         {/* Login Page */}
-        <Route path="/login" element={<AdminLogin />} />
+        <Route path="/login" element={<PaymentReminderPage />} />
 
         {/* Protected Admin Panel */}
-        <Route
+        {/* <Route
           path="/admin"
           element={
             <ProtectedRoute>
               <AdminPanel />
             </ProtectedRoute>
           }
-        />
+        /> */}
 
         {/* Default redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
