@@ -14,7 +14,7 @@ const HajjDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = async () => {
+ const fetchStats = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
       const data = querySnapshot.docs.map((doc) => doc.data());
@@ -23,7 +23,6 @@ const HajjDashboard = () => {
       const genderCount = {};
       const maritalCount = {};
       
-      // New Series Counters
       let sCount = 0;
       let pCount = 0;
       let gCount = 0;
@@ -31,7 +30,7 @@ const HajjDashboard = () => {
       data.forEach((a) => {
         const slh6Value = a.slh6 || "";
 
-        // logic for series totals
+        // 1. Series Totals Logic
         if (/^S/i.test(slh6Value)) {
           sCount++;
         } else if (/^P/i.test(slh6Value)) {
@@ -40,17 +39,26 @@ const HajjDashboard = () => {
           gCount++;
         }
 
-        // Existing counts
+        // 2. District Normalization (Bo vs BO vs bo)
         if (Array.isArray(a.districts) && a.districts.length > 0) {
           a.districts.forEach((d) => {
-            districtCount[d] = (districtCount[d] || 0) + 1;
+            // Trim and Proper Case: "  bo " -> "Bo"
+            const normalizedD = d.trim().charAt(0).toUpperCase() + d.trim().slice(1).toLowerCase();
+            districtCount[normalizedD] = (districtCount[normalizedD] || 0) + 1;
           });
         }
+
+        // 3. Gender Normalization (male vs Male vs Female )
         if (a.gender) {
-          genderCount[a.gender] = (genderCount[a.gender] || 0) + 1;
+          // Removes spaces and ensures "Male" or "Female"
+          const normalizedGender = a.gender.trim().charAt(0).toUpperCase() + a.gender.trim().slice(1).toLowerCase();
+          genderCount[normalizedGender] = (genderCount[normalizedGender] || 0) + 1;
         }
+
+        // 4. Marital Status Normalization
         if (a.maritalStatus) {
-          maritalCount[a.maritalStatus] = (maritalCount[a.maritalStatus] || 0) + 1;
+          const normalizedMarital = a.maritalStatus.trim().charAt(0).toUpperCase() + a.maritalStatus.trim().slice(1).toLowerCase();
+          maritalCount[normalizedMarital] = (maritalCount[normalizedMarital] || 0) + 1;
         }
       });
 

@@ -25,6 +25,7 @@ import DataAudit from "./Report/DataAudit";
 import SCodeReport from "./Report/SCodeReport";
 import PCodeReport from "./Report/PCodeReport";
 import GeneralSeriesReport from "./Report/GeneralSeriesReport";
+import DistrictFullReport from "./Report/DistrictFullReport";
 
 // --- Navigation Items ---
 const NAV_ITEMS = [
@@ -47,6 +48,7 @@ const NAV_ITEMS = [
      { key: "SCodeReport", label: "SCode Report ", icon: <MdBarChart /> },
      { key: "PCodeReport", label: "PCode Report ", icon: <MdBarChart /> },
      { key: "GeneralSeriesReport", label: "General Series Report ", icon: <MdBarChart /> },
+     { key: "DistrictFullReport", label: "District Full Report ", icon: <MdBarChart /> },
      
     ],
   },
@@ -126,6 +128,7 @@ function AdminPanel() {
       case "SCodeReport": return <SCodeReport />;
       case "PCodeReport": return <PCodeReport />;
       case "GeneralSeriesReport": return <GeneralSeriesReport />;
+      case "DistrictFullReport": return <DistrictFullReport />;
 
       default: return <Placeholder title={activeTab} />;
     }

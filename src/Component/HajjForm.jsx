@@ -54,6 +54,7 @@ const HajjForm = () => {
     const [formData, setFormData] = useState(initialFormData);
     const [showCameraFor, setShowCameraFor] = useState(null);
     const [selectedDistrict, setSelectedDistrict] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
 
 
     const districts = [
@@ -177,8 +178,8 @@ const HajjForm = () => {
             "kinFirstName",
             "kinRelationship",
             "kinPhone",
-            "pilgrimPhoto",
-            "passportPhoto",
+            // "pilgrimPhoto",
+            // "passportPhoto",
             "applicationYear",
             "slh6",
         ];
@@ -566,6 +567,17 @@ const HajjForm = () => {
             }, 500);
         }
     };
+
+    // Filter logic: This runs on every render when searchTerm or submissions change
+    const filteredSubmissions = submissions.filter((sub) => {
+        const fullName = `${sub.concatenatedFirstName} ${sub.lastName}`.toLowerCase();
+        const districtText = Array.isArray(sub.districts)
+            ? sub.districts.join(', ').toLowerCase()
+            : (sub.district || '').toLowerCase();
+        const search = searchTerm.toLowerCase();
+
+        return fullName.includes(search) || districtText.includes(search);
+    });
 
     return (
         <div className="w-full max-w-4xl min-h-screen flex justify-center items-center bg-gray-100 p-2 sm:p-4 hajj-form-wrapper">
@@ -1091,6 +1103,28 @@ const HajjForm = () => {
                     )}
                 </div>
                 <div className="w-full max-w-4xl mt-12 p-6 bg-white rounded-lg shadow-xl no-print table-container">
+                    <div className="mb-6">
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Filter by name or district..."
+                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        {searchTerm && (
+                            <p className="mt-2 text-xs text-blue-600">
+                                Showing {filteredSubmissions.length} of {submissions.length} results
+                            </p>
+                        )}
+                    </div>
+
                     <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b-2 pb-2 border-blue-500">
                         Submitted Applications
                     </h2>
@@ -1109,13 +1143,12 @@ const HajjForm = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {submissions.length > 0 ? (
-                                    submissions.map((sub) => (
+                                {filteredSubmissions.length > 0 ? ( filteredSubmissions.map((sub) => (
                                         <tr key={sub.id} className={`border-b ${editingId === sub.id ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}>
                                             <td className="py-3 px-4 text-sm font-semibold">{`${sub.concatenatedFirstName} ${sub.lastName}`}</td>
-                                           <td className="py-3 px-4 text-sm">
-  {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}
-</td>
+                                            <td className="py-3 px-4 text-sm">
+                                                {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}
+                                            </td>
                                             <td className="py-3 px-4 text-sm">{sub.passportNumber}</td>
                                             <td className="py-3 px-4 text-sm">{sub.phone}</td>
                                             <td className="py-3 px-4 text-center space-x-2 whitespace-nowrap">
@@ -1140,8 +1173,7 @@ const HajjForm = () => {
                     {/* 2. MOBILE CARD VIEW (Below md:) */}
                     {/* This list is shown on small screens and hidden on medium screens and larger */}
                     <div className="md:hidden space-y-4">
-                        {submissions.length > 0 ? (
-                            submissions.map((sub) => (
+                        {filteredSubmissions.length > 0 ? ( filteredSubmissions.map((sub) => (
                                 <div
                                     key={sub.id}
                                     className={`p-4 border rounded-lg shadow-md ${editingId === sub.id ? 'bg-yellow-100 border-yellow-500' : 'bg-white border-gray-200'}`}
@@ -1158,7 +1190,7 @@ const HajjForm = () => {
 
                                     {/* Details */}
                                     <div className="space-y-1 text-sm mb-4">
-                                      <p><strong>District:</strong> {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}</p>
+                                        <p><strong>District:</strong> {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}</p>
                                         <p><strong>Phone:</strong> {sub.phone}</p>
                                     </div>
 

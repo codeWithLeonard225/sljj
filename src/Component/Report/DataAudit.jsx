@@ -35,22 +35,32 @@ const DataAudit = () => {
         fetchIncompleteData();
     }, []);
 
-    const handleQuickFix = async (id) => {
-        const newGender = prompt("Enter Gender (Male/Female):");
-        if (!newGender) return;
+    const handleQuickFix = async (id, currentGender) => {
+    // 1. Ask for the District name
+    const inputDistrict = prompt("Enter District Name for this record (e.g., Bo, Bonthe, Kenema):");
 
-        try {
-            const docRef = doc(db, "hajjApplicants", id);
-            await updateDoc(docRef, {
-                gender: newGender,
-                districts: ["Unassigned"] // Assigns a default to fix the [].join() error
-            });
-            alert("Record updated!");
-            fetchIncompleteData(); // Refresh list
-        } catch (err) {
-            alert("Update failed");
-        }
-    };
+    // 2. Stop if they cancel or leave it blank
+    if (!inputDistrict || inputDistrict.trim() === "") {
+        alert("Update cancelled. A district is required.");
+        return;
+    }
+
+    // 3. Normalize to Proper Case (e.g., "bO" -> "Bo")
+    const formattedDistrict = inputDistrict.trim().charAt(0).toUpperCase() + 
+                              inputDistrict.trim().slice(1).toLowerCase();
+
+    try {
+        const docRef = doc(db, "hajjApplicants", id);
+        
+    
+
+        alert(`Success! District updated to: ${formattedDistrict}`);
+        fetchIncompleteData(); // Refresh the list to remove the fixed record
+    } catch (err) {
+        console.error("Quick Fix Error:", err);
+        alert("Update failed. Check console for details.");
+    }
+};
 
     return (
         <div className="p-6 bg-gray-100 min-h-screen">
