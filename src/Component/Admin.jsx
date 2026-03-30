@@ -21,6 +21,10 @@ import {
 import HajjForm from "./HajjForm";
 import HajjReport from "./Report/HajjReport";
 import HajjDashboard from "./DashBoard/HajjDashboard";
+import DataAudit from "./Report/DataAudit";
+import SCodeReport from "./Report/SCodeReport";
+import PCodeReport from "./Report/PCodeReport";
+import GeneralSeriesReport from "./Report/GeneralSeriesReport";
 
 // --- Navigation Items ---
 const NAV_ITEMS = [
@@ -39,6 +43,10 @@ const NAV_ITEMS = [
     icon: <MdBarChart />,
     children: [
      { key: "HajjReport", label: "Hajj Report ", icon: <MdBarChart /> },
+     { key: "DataAudit", label: "Data Audit ", icon: <MdBarChart /> },
+     { key: "SCodeReport", label: "SCode Report ", icon: <MdBarChart /> },
+     { key: "PCodeReport", label: "PCode Report ", icon: <MdBarChart /> },
+     { key: "GeneralSeriesReport", label: "General Series Report ", icon: <MdBarChart /> },
      
     ],
   },
@@ -114,6 +122,10 @@ function AdminPanel() {
       case "dashboard": return <HajjDashboard />;
       case "Form": return <HajjForm />;
       case "HajjReport": return <HajjReport />;
+      case "DataAudit": return <DataAudit />;
+      case "SCodeReport": return <SCodeReport />;
+      case "PCodeReport": return <PCodeReport />;
+      case "GeneralSeriesReport": return <GeneralSeriesReport />;
 
       default: return <Placeholder title={activeTab} />;
     }

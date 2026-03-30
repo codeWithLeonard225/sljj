@@ -510,7 +510,7 @@ const HajjForm = () => {
                 <div class="info-item"><strong>Passport No:</strong> ${getVal('passportNumber')}</div>
                 <div class="info-item"><strong>Issue Place/Date:</strong> ${getVal('passportIssuePlace')} / ${getVal('passportIssueDate')}</div>
                 <div class="info-item"><strong>Expiry Date:</strong> ${getVal('passportExpiryDate')}</div>
-                <div class="info-item"><strong>District:</strong> ${submissionData.districts?.join(', ') || 'N/A'}</div>
+                <div class="info-item"><strong>District:</strong> ${(submissionData.districts || []).join(', ') || 'N/A'}
                 <div class="info-item" style="grid-column: span 2;"><strong>Residential Address:</strong> ${getVal('residentialAddress')}</div>
                 <div class="info-item"><strong>Email:</strong> ${getVal('email')}</div>
                 <div class="info-item"><strong>Phone:</strong> ${getVal('phone')}</div>
@@ -1113,7 +1113,9 @@ const HajjForm = () => {
                                     submissions.map((sub) => (
                                         <tr key={sub.id} className={`border-b ${editingId === sub.id ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}>
                                             <td className="py-3 px-4 text-sm font-semibold">{`${sub.concatenatedFirstName} ${sub.lastName}`}</td>
-                                            <td className="py-3 px-4 text-sm">{sub.districts.join(', ') || 'N/A'}</td>
+                                           <td className="py-3 px-4 text-sm">
+  {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}
+</td>
                                             <td className="py-3 px-4 text-sm">{sub.passportNumber}</td>
                                             <td className="py-3 px-4 text-sm">{sub.phone}</td>
                                             <td className="py-3 px-4 text-center space-x-2 whitespace-nowrap">
@@ -1156,7 +1158,7 @@ const HajjForm = () => {
 
                                     {/* Details */}
                                     <div className="space-y-1 text-sm mb-4">
-                                        <p><strong>District:</strong> {sub.districts.join(', ') || 'N/A'}</p>
+                                      <p><strong>District:</strong> {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}</p>
                                         <p><strong>Phone:</strong> {sub.phone}</p>
                                     </div>
 
