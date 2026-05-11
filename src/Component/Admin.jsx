@@ -26,7 +26,7 @@ import SCodeReport from "./Report/SCodeReport";
 import PCodeReport from "./Report/PCodeReport";
 import GeneralSeriesReport from "./Report/GeneralSeriesReport";
 import DistrictFullReport from "./Report/DistrictFullReport";
-import Tag from "./tag";
+import Tag from "./Tag";
 
 // --- Navigation Items ---
 const NAV_ITEMS = [
