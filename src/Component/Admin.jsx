@@ -26,6 +26,7 @@ import SCodeReport from "./Report/SCodeReport";
 import PCodeReport from "./Report/PCodeReport";
 import GeneralSeriesReport from "./Report/GeneralSeriesReport";
 import DistrictFullReport from "./Report/DistrictFullReport";
+import Tag from "./tag";
 
 // --- Navigation Items ---
 const NAV_ITEMS = [
@@ -35,6 +36,15 @@ const NAV_ITEMS = [
     icon: <MdEdit />,
     children: [
       { key: "Form", label: " Form", icon: <MdPerson /> },
+      
+    ],
+  },
+  {
+    key: "tag",
+    label: "Tag",
+    icon: <MdEdit />,
+    children: [
+      { key: "Tag", label: " Tag", icon: <MdPerson /> },
       
     ],
   },
@@ -123,6 +133,7 @@ function AdminPanel() {
     switch (activeTab) {
       case "dashboard": return <HajjDashboard />;
       case "Form": return <HajjForm />;
+      case "Tag": return <Tag />;
       case "HajjReport": return <HajjReport />;
       case "DataAudit": return <DataAudit />;
       case "SCodeReport": return <SCodeReport />;
@@ -130,7 +141,7 @@ function AdminPanel() {
       case "GeneralSeriesReport": return <GeneralSeriesReport />;
       case "DistrictFullReport": return <DistrictFullReport />;
 
-      default: return <Placeholder title={activeTab} />;
+     default: return <Dashboard />;
     }
   };
 
