@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CameraCapture from "./CameraCapture";
+import CloudinaryImageUploader from "./CaptureCamera/CloudinaryImageUploader"; // adjust path
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase"; // adjust path if needed
 
@@ -7,7 +8,7 @@ const HajjForm = () => {
 
 
     const initialFormData = {
-        applicationYear: "",
+        applicationYear: "2027",
         residingInSL: "Yes",
         residenceCountry: "",
         residenceAgency: "",
@@ -28,6 +29,7 @@ const HajjForm = () => {
         passportIssueDate: "",
         passportExpiryDate: "",
         districts: [],
+        placeOfBirth: "",
         residentialAddress: "",
         otherAddress: "",
         email: "",
@@ -48,15 +50,19 @@ const HajjForm = () => {
         deported: "No",
         pilgrimPhoto: null,
         passportPhoto: null,
+        slh6: "",
+        nunNo: "",
     };
     const [formData, setFormData] = useState(initialFormData);
     const [showCameraFor, setShowCameraFor] = useState(null);
     const [selectedDistrict, setSelectedDistrict] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+const [selectedYear, setSelectedYear] = useState("");
 
 
     const districts = [
         'Bo', 'Bonthe', 'Falaba', 'Kailahun', 'Kambia', 'Kenema', 'Kono', 'Moyamba',
-        'Portloko', 'Pujehun', 'Tonkolili', 'W. Urban', 'W. Rural', 'Koinadugu'
+        'Portloko', 'Pujehun', 'Tonkolili', 'W. Urban', 'W. Rural', 'Koinadugu', 'Bombali', 'Karena'
     ];
 
     // State for the table data
@@ -64,8 +70,57 @@ const HajjForm = () => {
     // State to track if we are editing a submission (holds the Firebase document ID)
     const [editingId, setEditingId] = useState(null);
 
+    // Cloudinary config
+    const CLOUD_NAME = "doucdnzij";
+    const UPLOAD_PRESET = "Nardone";
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
+    const handleCameraCapture = async (base64Data) => {
+        setIsUploading(true);
+        setUploadProgress(0);
+        try {
+            const res = await fetch(base64Data);
+            const blob = await res.blob();
+            if (blob.size > MAX_FILE_SIZE) {
+                toast.error("Image is too large. Max size is 5MB.");
+                setIsUploading(false);
+                return;
+            }
 
+            const xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener("progress", (e) => {
+                if (e.lengthComputable) {
+                    setUploadProgress(Math.round((e.loaded * 100) / e.total));
+                }
+            });
+
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    setIsUploading(false);
+                    setShowCamera(false);
+                    if (xhr.status === 200) {
+                        const data = JSON.parse(xhr.responseText);
+                        handleUploadSuccess(data.secure_url, data.public_id);
+                    } else {
+                        toast.error("Camera upload failed. Please try again.");
+                    }
+                }
+            };
+
+            const formDataObj = new FormData();
+            formDataObj.append("file", blob);
+            formDataObj.append("upload_preset", UPLOAD_PRESET);
+            formDataObj.append("folder", "Student_Photos");
+
+            xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`);
+            xhr.send(formDataObj);
+        } catch (err) {
+            console.error("Camera upload failed:", err);
+            toast.error("Failed to upload image from camera.");
+            setIsUploading(false);
+            setShowCamera(false);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -108,77 +163,127 @@ const HajjForm = () => {
 
     const [loading, setLoading] = useState(false);
 
-   const handleSubmit = async (e) => {
-  e.preventDefault();
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-  // Required fields for validation
-  const requiredFields = [
-    "firstName",
-    "lastName",
-    // "gender",
-    // "dob",
-    // "passportNumber",
-    // "passportIssuePlace",
-    // "passportIssueDate",
-    // "passportExpiryDate",
-    // "residentialAddress",
-    // "phone",
-    // "kinFirstName",
-    // "kinRelationship",
-    // "kinPhone",
-    // "pilgrimPhoto",  
-    // "passportPhoto",  
-    // "applicationYear",
-  ];
+        // Required fields for validation
+        const requiredFields = [
+            "firstName",
+            "lastName",
+            "gender",
+            "dob",
+            "passportNumber",
+            "passportIssuePlace",
+            "passportIssueDate",
+            "passportExpiryDate",
+            "residentialAddress",
+            "phone",
+            "kinFirstName",
+            "kinRelationship",
+            "kinPhone",
+            // "pilgrimPhoto",
+            // "passportPhoto",
+            "applicationYear",
+            "slh6",
+        ];
 
-  // Validation check
-  const missingFields = requiredFields.filter(
-    (field) => !formData[field] || formData[field].toString().trim() === ""
-  );
+        // Validation check
+        const missingFields = requiredFields.filter(
+            (field) => !formData[field] || formData[field].toString().trim() === ""
+        );
 
-  if (missingFields.length > 0) {
-    alert(`Please fill all required fields: ${missingFields.join(", ")}`);
-    return; // stop form submission
-  }
+        if (missingFields.length > 0) {
+            alert(`Please fill all required fields: ${missingFields.join(", ")}`);
+            return; // stop form submission
+        }
 
-  const dataToSave = {
-    ...formData,
-    districts: selectedDistrict ? [selectedDistrict] : formData.districts,
-    submittedAt: new Date().toISOString(),
-  };
+        const dataToSave = {
+            ...formData,
+            districts: selectedDistrict ? [selectedDistrict] : formData.districts,
+            submittedAt: new Date().toISOString(),
+        };
 
-  setLoading(true);
+        setLoading(true);
 
-  try {
-    if (editingId) {
-      const docRef = doc(db, "hajjApplicants", editingId);
-      await updateDoc(docRef, dataToSave);
-      alert("Application updated successfully!");
-    } else {
-      await addDoc(collection(db, "hajjApplicants"), dataToSave);
-      alert("Form submitted successfully!");
-    }
+        try {
+            if (editingId) {
+                const docRef = doc(db, "hajjApplicants", editingId);
+                await updateDoc(docRef, dataToSave);
+                alert("Application updated successfully!");
+            } else {
+                await addDoc(collection(db, "hajjApplicants"), dataToSave);
+                alert("Form submitted successfully!");
+            }
 
-    await fetchSubmissions();
-    resetForm();
-  } catch (error) {
-    console.error(`Error ${editingId ? "updating" : "adding"} document: `, error);
-    alert(`Error ${editingId ? "updating" : "submitting"} form. Please try again.`);
-  } finally {
-    setLoading(false);
-  }
-};
+            await fetchSubmissions();
+            resetForm();
+        } catch (error) {
+            console.error(`Error ${editingId ? "updating" : "adding"} document: `, error);
+            alert(`Error ${editingId ? "updating" : "submitting"} form. Please try again.`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     const fetchSubmissions = async () => {
         try {
             const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
-            const data = querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            // Sort to show the latest at the top
-            setSubmissions(data.reverse());
+
+            // Function to safely create the full name
+            const getFullName = (docData) => {
+                const first = docData.firstName || '';
+                const middle = docData.middleName || '';
+                const last = docData.lastName || '';
+
+                // Concatenate first name and middle name (if it exists)
+                const concatenatedFirstName = middle.trim() ? `${first} ${middle}` : first;
+
+                // Return a new object with the combined name fields
+                return {
+                    ...docData,
+                    concatenatedFirstName: concatenatedFirstName.trim(), // New field for table use
+                    fullName: `${concatenatedFirstName} ${last}`.trim() // Optional: Full name including last
+                };
+            };
+
+            const data = querySnapshot.docs.map(doc => {
+                const docData = doc.data();
+                return {
+                    id: doc.id,
+                    ...getFullName(docData) // Use the new function to add concatenated name fields
+                };
+            });
+
+            // --- UPDATED SORTING LOGIC (remains the same) ---
+            const sortedData = data.sort((a, b) => {
+                // Get the slh6 values, defaulting to a string that sorts last (like a large number in string format)
+                const slh6A = a.slh6 || '999999999';
+                const slh6B = b.slh6 || '999999999';
+
+                // Convert the slh6 string (e.g., "001", "010") to an integer for proper numerical sorting.
+                const numA = parseInt(slh6A, 10);
+                const numB = parseInt(slh6B, 10);
+
+                // Check if the values are valid numbers after parsing
+                const isNumA = !isNaN(numA);
+                const isNumB = !isNaN(numB);
+
+                if (isNumA && isNumB) {
+                    // Sort ascending numerically
+                    return numA - numB;
+                } else if (isNumA) {
+                    return -1;
+                } else if (isNumB) {
+                    return 1;
+                }
+
+                // Fall back to a string comparison
+                return slh6A.localeCompare(slh6B);
+            });
+            // --- END UPDATED SORTING LOGIC ---
+
+            setSubmissions(sortedData);
         } catch (error) {
             console.error("Error fetching submissions: ", error);
         }
@@ -207,34 +312,41 @@ const HajjForm = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
- const DELETE_PASSWORD = "1718"; // change this to your preferred password
+    const DELETE_PASSWORD = "1718"; // change this to your preferred password
 
-const handleDelete = async (id) => {
-  const password = prompt("Enter password to delete this application:");
+    const handleDelete = async (id) => {
+        const password = prompt("Enter password to delete this application:");
 
-  if (password !== DELETE_PASSWORD) {
-    alert("Incorrect password. Deletion canceled!");
-    return;
-  }
+        if (password !== DELETE_PASSWORD) {
+            alert("Incorrect password. Deletion canceled!");
+            return;
+        }
 
-  if (window.confirm("Are you sure you want to delete this application?")) {
-    try {
-      await deleteDoc(doc(db, "hajjApplicants", id));
-      alert("Application deleted successfully!");
-      // Refresh the list
-      await fetchSubmissions();
-    } catch (error) {
-      console.error("Error deleting document: ", error);
-      alert("Error deleting application. Please try again.");
-    }
-  }
-};
+        if (window.confirm("Are you sure you want to delete this application?")) {
+            try {
+                await deleteDoc(doc(db, "hajjApplicants", id));
+                alert("Application deleted successfully!");
+                // Refresh the list
+                await fetchSubmissions();
+            } catch (error) {
+                console.error("Error deleting document: ", error);
+                alert("Error deleting application. Please try again.");
+            }
+        }
+    };
 
 
     const handlePrint = (submissionData) => {
         // Helper function to safely get data or a placeholder
         const getVal = (key) => submissionData[key] || 'N/A';
 
+        // Full name helper (prevents extra spaces if middleName is empty)
+        const getFullName = () => {
+            const first = submissionData.firstName || '';
+            const middle = submissionData.middleName ? ` ${submissionData.middleName}` : '';
+            const last = submissionData.lastName || '';
+            return `${first}${middle} ${last}`.trim();
+        };
         // Format the Photo URL for printing (or use a placeholder)
         // Photo is embedded as a Base64 string from the form data
         const pilgrimPhotoHtml = submissionData.pilgrimPhoto
@@ -316,7 +428,7 @@ const handleDelete = async (id) => {
                 padding-bottom: 3px;
             }
             .info-item strong { 
-                display: inline-block; 
+               
                 font-weight: bold; 
                 color: #555; 
                 min-width: 120px;
@@ -380,17 +492,20 @@ const handleDelete = async (id) => {
                 <div style="flex-grow: 1;">
                     <div class="section-title">PILGRIM'S PERSONAL INFORMATION</div>
                     <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
-                        <div class="info-item"><strong>Full Name:</strong> ${getVal('firstName')} ${getVal('middleName')} ${getVal('lastName')}</div>
+                      
+                         <div class="info-item"><strong>Full Name:</strong> ${getFullName()}</div>
                         <div class="info-item"><strong>Marital Status:</strong> ${getVal('maritalStatus')}</div>
                         <div class="info-item"><strong>Gender:</strong> ${getVal('gender')}</div>
                         <div class="info-item"><strong>DOB / Age:</strong> ${getVal('dob')} / ${getVal('age')}</div>
                         <div class="info-item"><strong>Occupation:</strong> ${getVal('occupation')}</div>
                         <div class="info-item"><strong>Hajj Before:</strong> ${getVal('hajjBefore')} ${getVal('hajjBefore') === 'Yes' ? `(${getVal('hajjYear')})` : ''}</div>
-                    </div>
-                </div>
-                <div style="width: 1.5in; margin-left: 20px; text-align: center; flex-shrink: 0;">
-                    ${pilgrimPhotoHtml}
-                    <p style="font-size: 8pt; margin: 0;">Pilgrim Photo</p>
+                        </div>
+                        </div>
+                        <div style="width: 1.5in; margin-left: 20px; text-align: center; flex-shrink: 0;">
+                        ${pilgrimPhotoHtml}
+                        <p style="font-size: 8pt; margin: 0;">Pilgrim Photo</p>
+                        <div class="info-item"><strong>SLH6:</strong> ${getVal('slh6')}</div>
+
                 </div>
             </div>
 
@@ -399,7 +514,7 @@ const handleDelete = async (id) => {
                 <div class="info-item"><strong>Passport No:</strong> ${getVal('passportNumber')}</div>
                 <div class="info-item"><strong>Issue Place/Date:</strong> ${getVal('passportIssuePlace')} / ${getVal('passportIssueDate')}</div>
                 <div class="info-item"><strong>Expiry Date:</strong> ${getVal('passportExpiryDate')}</div>
-                <div class="info-item"><strong>District:</strong> ${submissionData.districts?.join(', ') || 'N/A'}</div>
+                <div class="info-item"><strong>District:</strong> ${(submissionData.districts || []).join(', ') || 'N/A'}
                 <div class="info-item" style="grid-column: span 2;"><strong>Residential Address:</strong> ${getVal('residentialAddress')}</div>
                 <div class="info-item"><strong>Email:</strong> ${getVal('email')}</div>
                 <div class="info-item"><strong>Phone:</strong> ${getVal('phone')}</div>
@@ -407,11 +522,11 @@ const handleDelete = async (id) => {
 
             <div class="section-title section-block">NEXT OF KIN</div>
             <div class="info-grid section-block">
-                <div class="info-item"><strong>Kin Name:</strong> ${getVal('kinFirstName')}</div>
+                <div class="info-item"><strong>Full Name:</strong> ${getVal('kinFirstName')}</div>
                 <div class="info-item"><strong>Relationship:</strong> ${getVal('kinRelationship')}</div>
-                <div class="info-item" style="grid-column: span 2;"><strong>Kin Address:</strong> ${getVal('kinAddress')}</div>
-                <div class="info-item"><strong>Kin Phone:</strong> ${getVal('kinPhone')}</div>
-                <div class="info-item"><strong>Kin Email:</strong> ${getVal('kinEmail')}</div>
+                <div class="info-item" style="grid-column: span 2;"><strong>Address:</strong> ${getVal('kinAddress')}</div>
+                <div class="info-item"><strong>Phone:</strong> ${getVal('kinPhone')}</div>
+                <div class="info-item"><strong>Email:</strong> ${getVal('kinEmail')}</div>
             </div>
 
             <div class="section-title section-block">HEALTH & LEGAL DECLARATION</div>
@@ -456,6 +571,17 @@ const handleDelete = async (id) => {
         }
     };
 
+    // Filter logic: This runs on every render when searchTerm or submissions change
+    const filteredSubmissions = submissions.filter((sub) => {
+        const fullName = `${sub.concatenatedFirstName} ${sub.lastName}`.toLowerCase();
+        const districtText = Array.isArray(sub.districts)
+            ? sub.districts.join(', ').toLowerCase()
+            : (sub.district || '').toLowerCase();
+        const search = searchTerm.toLowerCase();
+
+        return fullName.includes(search) || districtText.includes(search);
+    });
+
     return (
         <div className="w-full max-w-4xl min-h-screen flex justify-center items-center bg-gray-100 p-2 sm:p-4 hajj-form-wrapper">
             <form onSubmit={handleSubmit}>
@@ -489,7 +615,7 @@ const handleDelete = async (id) => {
                             </p>
                             <hr />
                             <h1 className="text-xl sm:text-2xl font-bold mt-8 text-blue-800"> {/* Adjusted font sizes */}
-                                HAJJ 2026 APPLICATION FORM
+                                HAJJ 2027 APPLICATION FORM
                             </h1>
                         </header>
                         <div>
@@ -548,6 +674,17 @@ const handleDelete = async (id) => {
                                 <div className="flex space-x-4">
                                     <label><input type="radio" name="maritalStatus" value="Single" checked={formData.maritalStatus === "Single"} onChange={handleInputChange} className="mr-1" /> Single</label>
                                     <label><input type="radio" name="maritalStatus" value="Married" checked={formData.maritalStatus === "Married"} onChange={handleInputChange} className="mr-1" /> Married</label>
+                                    <label>
+                                        <input
+                                            type="radio"
+                                            name="maritalStatus"
+                                            value="Widow"
+                                            checked={formData.maritalStatus === "Widow"}
+                                            onChange={handleInputChange}
+                                            className="mr-1"
+                                        />
+                                        Widow
+                                    </label>
                                 </div>
                             </div>
                             <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-8 mb-4"> {/* Stacks vertically on small screens */}
@@ -596,35 +733,33 @@ const handleDelete = async (id) => {
                                 <label>Pilgrim Photo</label>
                                 <div className="border-8 border-dashed w-36 h-48 flex items-center justify-center bg-white/30">
                                     {formData.pilgrimPhoto ? (
-                                        <img src={formData.pilgrimPhoto} alt="Pilgrim" className="w-full h-full object-cover" />
+                                        <img
+                                            src={formData.pilgrimPhoto}
+                                            alt="Pilgrim"
+                                            className="w-full h-full object-cover"
+                                        />
                                     ) : (
                                         "2-inch Photo"
                                     )}
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-2 mt-2"> {/* Buttons are stacked on mobile */}
-                                    <input
-                                        id="pilgrim-photo-input"
-                                        type="file"
-                                        accept="image/*"
-                                        hidden
-                                        onChange={(e) => handlePhotoChange(e, "pilgrimPhoto")}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => document.getElementById("pilgrim-photo-input").click()}
-                                        className="w-full sm:w-auto bg-blue-500 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Upload File
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCameraFor("pilgrim")}
-                                        className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Use Camera
-                                    </button>
-                                </div>
+
+                                {/* Pilgrim Photo */}
+                                <CloudinaryImageUploader
+                                    field="pilgrimPhoto"
+                                    onUploadSuccess={(url, field) =>
+                                        setFormData((prev) => ({ ...prev, [field]: url }))
+                                    }
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCameraFor("pilgrim")}
+                                    className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold mt-2"
+                                >
+                                    Use Camera
+                                </button>
                             </div>
+
                         </div>
 
                         <div className="bg-white/50 p-6 rounded-lg mb-6">
@@ -687,35 +822,33 @@ const handleDelete = async (id) => {
                                 <label>Passport Book</label>
                                 <div className="border-8 border-dashed w-60 h-48 flex items-center justify-center bg-white/30">
                                     {formData.passportPhoto ? (
-                                        <img src={formData.passportPhoto} alt="Passport" className="w-full h-full object-cover" />
+                                        <img
+                                            src={formData.passportPhoto}
+                                            alt="Passport"
+                                            className="w-full h-full object-cover"
+                                        />
                                     ) : (
                                         "Passport Photo"
                                     )}
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-2 mt-2"> {/* Buttons are stacked on mobile */}
-                                    <input
-                                        id="passport-photo-input"
-                                        type="file"
-                                        accept="image/*"
-                                        hidden
-                                        onChange={(e) => handlePhotoChange(e, "passportPhoto")}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => document.getElementById("passport-photo-input").click()}
-                                        className="w-full sm:w-auto bg-blue-500 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Upload File
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowCameraFor("passport")}
-                                        className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold"
-                                    >
-                                        Use Camera
-                                    </button>
-                                </div>
+
+                                {/* Passport Photo */}
+                                <CloudinaryImageUploader
+                                    field="passportPhoto"
+                                    onUploadSuccess={(url, field) =>
+                                        setFormData((prev) => ({ ...prev, [field]: url }))
+                                    }
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCameraFor("passport")}
+                                    className="w-full sm:w-auto bg-green-600 text-white py-2 px-6 rounded-md text-sm font-semibold mt-2"
+                                >
+                                    Use Camera
+                                </button>
                             </div>
+
                         </div>
 
                         <div className="bg-white/50 p-6 rounded-lg mb-6">
@@ -740,6 +873,16 @@ const handleDelete = async (id) => {
                                 ))}
                             </div>
                             <div className="mb-4">
+                                <div className="mb-4">
+                                    <label className="block text-gray-700">Place of Birth</label>
+                                    <input
+                                        type="text"
+                                        name="placeOfBirth"
+                                        value={formData.placeOfBirth}
+                                        onChange={handleInputChange}
+                                        className="w-full border-b border-gray-400 focus:outline-none"
+                                    />
+                                </div>
                                 <label className="block text-gray-700">Present residential address</label>
                                 <input type="text" name="residentialAddress" value={formData.residentialAddress} onChange={handleInputChange} className="w-full border-b border-gray-400 focus:outline-none" />
                             </div>
@@ -764,7 +907,7 @@ const handleDelete = async (id) => {
                         <div className="bg-white/50 p-6 rounded-lg mb-6">
                             <div className="bg-gray-200 p-3 px-5 rounded-lg font-semibold text-gray-900 border-l-4 border-blue-500 mb-6">
                                 <h2 className="text-xl font-semibold">
-                                    NEXT OF KING
+                                    NEXT OF KIN
                                 </h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -908,9 +1051,26 @@ const handleDelete = async (id) => {
 
                             <div className="flex flex-col items-start w-full sm:w-1/3">
                                 <div className="flex items-center space-x-2 mb-4">
-                                    <p className="text-sm">SLHS No</p>
-                                    <input type="text" className="w-full border-b border-gray-400" />
+                                    <label className="text-sm">SLH6 No</label>
+                                    <input
+                                        type="text"
+                                        name="slh6"
+                                        value={formData.slh6}
+                                        onChange={handleInputChange}
+                                        className="w-full border-b border-gray-400 focus:outline-none"
+                                    />
                                 </div>
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <label className="text-sm">NUN No</label>
+                                    <input
+                                        type="text"
+                                        name="nunNo"
+                                        value={formData.nunNo}
+                                        onChange={handleInputChange}
+                                        className="w-full border-b border-gray-400 focus:outline-none"
+                                    />
+                                </div>
+
                                 <div className="flex items-center space-x-2 w-full">
                                     <p className="text-sm">Date</p>
                                     <input type="date" className="w-full border-b border-gray-400" />
@@ -919,14 +1079,24 @@ const handleDelete = async (id) => {
                         </div>
                     </div>
                 </div>
+                {/* ✅ Camera Capture still works */}
                 {showCameraFor && (
                     <CameraCapture
-                        setPhoto={(data) => {
-                            if (showCameraFor === "pilgrim") {
-                                setFormData(prevData => ({ ...prevData, pilgrimPhoto: data }));
-                            } else if (showCameraFor === "passport") {
-                                setFormData(prevData => ({ ...prevData, passportPhoto: data }));
-                            }
+                        setPhoto={async (base64Data) => {
+                            // pass to uploader so it gets stored in Cloudinary
+                            const uploaderRef = document.createElement("div");
+                            const uploader = (
+                                <CloudinaryImageUploader
+                                    onUploadSuccess={(url) => {
+                                        if (showCameraFor === "pilgrim") {
+                                            setFormData((prev) => ({ ...prev, pilgrimPhoto: url }));
+                                        } else if (showCameraFor === "passport") {
+                                            setFormData((prev) => ({ ...prev, passportPhoto: url }));
+                                        }
+                                    }}
+                                />
+                            );
+                            uploader.handleCameraUpload(base64Data); // call uploader method directly
                         }}
                         onClose={() => setShowCameraFor(null)}
                     />
@@ -967,6 +1137,28 @@ const handleDelete = async (id) => {
                     )}
                 </div>
                 <div className="w-full max-w-4xl mt-12 p-6 bg-white rounded-lg shadow-xl no-print table-container">
+                    <div className="mb-6">
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input
+                                type="text"
+                                placeholder="Filter by name or district..."
+                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        {searchTerm && (
+                            <p className="mt-2 text-xs text-blue-600">
+                                Showing {filteredSubmissions.length} of {submissions.length} results
+                            </p>
+                        )}
+                    </div>
+
                     <h2 className="text-2xl font-bold mb-6 text-gray-800 border-b-2 pb-2 border-blue-500">
                         Submitted Applications
                     </h2>
@@ -985,21 +1177,22 @@ const handleDelete = async (id) => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {submissions.length > 0 ? (
-                                    submissions.map((sub) => (
-                                        <tr key={sub.id} className={`border-b ${editingId === sub.id ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}>
-                                            <td className="py-3 px-4 text-sm font-semibold">{`${sub.firstName} ${sub.lastName}`}</td>
-                                            <td className="py-3 px-4 text-sm">{sub.districts.join(', ') || 'N/A'}</td>
-                                            <td className="py-3 px-4 text-sm">{sub.passportNumber}</td>
-                                            <td className="py-3 px-4 text-sm">{sub.phone}</td>
-                                            <td className="py-3 px-4 text-center space-x-2 whitespace-nowrap">
-                                                {/* Action Buttons */}
-                                                <button type="button" onClick={() => handleEdit(sub)} className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition">Edit</button>
-                                                <button type="button" onClick={() => handleDelete(sub.id)} className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition">Delete</button>
-                                                <button type="button" onClick={() => handlePrint(sub)} className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition">Print</button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                {filteredSubmissions.length > 0 ? (filteredSubmissions.map((sub) => (
+                                    <tr key={sub.id} className={`border-b ${editingId === sub.id ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}>
+                                        <td className="py-3 px-4 text-sm font-semibold">{`${sub.concatenatedFirstName} ${sub.lastName}`}</td>
+                                        <td className="py-3 px-4 text-sm">
+                                            {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}
+                                        </td>
+                                        <td className="py-3 px-4 text-sm">{sub.passportNumber}</td>
+                                        <td className="py-3 px-4 text-sm">{sub.phone}</td>
+                                        <td className="py-3 px-4 text-center space-x-2 whitespace-nowrap">
+                                            {/* Action Buttons */}
+                                            <button type="button" onClick={() => handleEdit(sub)} className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition">Edit</button>
+                                            <button type="button" onClick={() => handleDelete(sub.id)} className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition">Delete</button>
+                                            <button type="button" onClick={() => handlePrint(sub)} className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition">Print</button>
+                                        </td>
+                                    </tr>
+                                ))
                                 ) : (
                                     <tr>
                                         <td colSpan="5" className="py-4 text-center text-gray-500">
@@ -1014,54 +1207,53 @@ const handleDelete = async (id) => {
                     {/* 2. MOBILE CARD VIEW (Below md:) */}
                     {/* This list is shown on small screens and hidden on medium screens and larger */}
                     <div className="md:hidden space-y-4">
-                        {submissions.length > 0 ? (
-                            submissions.map((sub) => (
-                                <div
-                                    key={sub.id}
-                                    className={`p-4 border rounded-lg shadow-md ${editingId === sub.id ? 'bg-yellow-100 border-yellow-500' : 'bg-white border-gray-200'}`}
-                                >
-                                    {/* Header: Name and Passport */}
-                                    <div className="flex justify-between items-start mb-2 border-b pb-2">
-                                        <p className="text-lg font-bold text-blue-700">
-                                            {`${sub.firstName} ${sub.lastName}`}
-                                        </p>
-                                        <p className="text-sm text-gray-600">
-                                            <span className="font-medium">Passport:</span> {sub.passportNumber}
-                                        </p>
-                                    </div>
-
-                                    {/* Details */}
-                                    <div className="space-y-1 text-sm mb-4">
-                                        <p><strong>District:</strong> {sub.districts.join(', ') || 'N/A'}</p>
-                                        <p><strong>Phone:</strong> {sub.phone}</p>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex justify-around space-x-2 pt-2 border-t border-dashed border-gray-200">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleEdit(sub)}
-                                            className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition flex-1"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDelete(sub.id)}
-                                            className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition flex-1"
-                                        >
-                                            Delete
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handlePrint(sub)}
-                                            className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition flex-1"
-                                        >
-                                            Print
-                                        </button>
-                                    </div>
+                        {filteredSubmissions.length > 0 ? (filteredSubmissions.map((sub) => (
+                            <div
+                                key={sub.id}
+                                className={`p-4 border rounded-lg shadow-md ${editingId === sub.id ? 'bg-yellow-100 border-yellow-500' : 'bg-white border-gray-200'}`}
+                            >
+                                {/* Header: Name and Passport */}
+                                <div className="flex justify-between items-start mb-2 border-b pb-2">
+                                    <p className="text-lg font-bold text-blue-700">
+                                        {`${sub.concatenatedFirstName} ${sub.lastName}`}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                        <span className="font-medium">Passport:</span> {sub.passportNumber}
+                                    </p>
                                 </div>
-                            ))
+
+                                {/* Details */}
+                                <div className="space-y-1 text-sm mb-4">
+                                    <p><strong>District:</strong> {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}</p>
+                                    <p><strong>Phone:</strong> {sub.phone}</p>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-around space-x-2 pt-2 border-t border-dashed border-gray-200">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEdit(sub)}
+                                        className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition flex-1"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(sub.id)}
+                                        className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition flex-1"
+                                    >
+                                        Delete
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handlePrint(sub)}
+                                        className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition flex-1"
+                                    >
+                                        Print
+                                    </button>
+                                </div>
+                            </div>
+                        ))
                         ) : (
                             <p className="py-4 text-center text-gray-500">
                                 No applications submitted yet.

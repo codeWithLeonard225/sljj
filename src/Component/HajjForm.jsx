@@ -4,11 +4,10 @@ import CloudinaryImageUploader from "./CaptureCamera/CloudinaryImageUploader"; /
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase"; // adjust path if needed
 
-const HajjForm = () => {
 
 
-    const initialFormData = {
-        applicationYear: "",
+ const initialFormData = {
+        applicationYear: "2027",
         residingInSL: "Yes",
         residenceCountry: "",
         residenceAgency: "",
@@ -29,6 +28,7 @@ const HajjForm = () => {
         passportIssueDate: "",
         passportExpiryDate: "",
         districts: [],
+        placeOfBirth: "",
         residentialAddress: "",
         otherAddress: "",
         email: "",
@@ -50,11 +50,17 @@ const HajjForm = () => {
         pilgrimPhoto: null,
         passportPhoto: null,
         slh6: "",
+        nunNo: "",
     };
+const HajjForm = () => {
+
+
+   
     const [formData, setFormData] = useState(initialFormData);
     const [showCameraFor, setShowCameraFor] = useState(null);
     const [selectedDistrict, setSelectedDistrict] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedYear, setSelectedYear] = useState("");
 
 
     const districts = [
@@ -570,13 +576,37 @@ const HajjForm = () => {
 
     // Filter logic: This runs on every render when searchTerm or submissions change
     const filteredSubmissions = submissions.filter((sub) => {
-        const fullName = `${sub.concatenatedFirstName} ${sub.lastName}`.toLowerCase();
+
+        const fullName = `${sub.concatenatedFirstName || ""} ${sub.lastName || ""}`
+            .toLowerCase();
+
         const districtText = Array.isArray(sub.districts)
-            ? sub.districts.join(', ').toLowerCase()
-            : (sub.district || '').toLowerCase();
+            ? sub.districts.join(", ").toLowerCase()
+            : "";
+
+        const passportNumber = (sub.passportNumber || "").toLowerCase();
+
+        const phoneNumber = (sub.phone || "").toLowerCase();
+
+        const applicationYear = (sub.applicationYear || "").toString();
+
+
         const search = searchTerm.toLowerCase();
 
-        return fullName.includes(search) || districtText.includes(search);
+
+        const matchesSearch =
+            fullName.includes(search) ||
+            districtText.includes(search) ||
+            passportNumber.includes(search) ||
+            phoneNumber.includes(search);
+
+
+        const matchesYear =
+            selectedYear === "" ||
+            applicationYear === selectedYear;
+
+
+        return matchesSearch && matchesYear;
     });
 
     return (
@@ -612,7 +642,7 @@ const HajjForm = () => {
                             </p>
                             <hr />
                             <h1 className="text-xl sm:text-2xl font-bold mt-8 text-blue-800"> {/* Adjusted font sizes */}
-                                HAJJ 2026 APPLICATION FORM
+                                HAJJ 2027 APPLICATION FORM
                             </h1>
                         </header>
                         <div>
@@ -671,6 +701,17 @@ const HajjForm = () => {
                                 <div className="flex space-x-4">
                                     <label><input type="radio" name="maritalStatus" value="Single" checked={formData.maritalStatus === "Single"} onChange={handleInputChange} className="mr-1" /> Single</label>
                                     <label><input type="radio" name="maritalStatus" value="Married" checked={formData.maritalStatus === "Married"} onChange={handleInputChange} className="mr-1" /> Married</label>
+                                    <label>
+                                        <input
+                                            type="radio"
+                                            name="maritalStatus"
+                                            value="Widow"
+                                            checked={formData.maritalStatus === "Widow"}
+                                            onChange={handleInputChange}
+                                            className="mr-1"
+                                        />
+                                        Widow
+                                    </label>
                                 </div>
                             </div>
                             <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-8 mb-4"> {/* Stacks vertically on small screens */}
@@ -859,6 +900,16 @@ const HajjForm = () => {
                                 ))}
                             </div>
                             <div className="mb-4">
+                                <div className="mb-4">
+                                    <label className="block text-gray-700">Place of Birth</label>
+                                    <input
+                                        type="text"
+                                        name="placeOfBirth"
+                                        value={formData.placeOfBirth}
+                                        onChange={handleInputChange}
+                                        className="w-full border-b border-gray-400 focus:outline-none"
+                                    />
+                                </div>
                                 <label className="block text-gray-700">Present residential address</label>
                                 <input type="text" name="residentialAddress" value={formData.residentialAddress} onChange={handleInputChange} className="w-full border-b border-gray-400 focus:outline-none" />
                             </div>
@@ -1036,6 +1087,16 @@ const HajjForm = () => {
                                         className="w-full border-b border-gray-400 focus:outline-none"
                                     />
                                 </div>
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <label className="text-sm">NUN No</label>
+                                    <input
+                                        type="text"
+                                        name="nunNo"
+                                        value={formData.nunNo}
+                                        onChange={handleInputChange}
+                                        className="w-full border-b border-gray-400 focus:outline-none"
+                                    />
+                                </div>
 
                                 <div className="flex items-center space-x-2 w-full">
                                     <p className="text-sm">Date</p>
@@ -1110,17 +1171,60 @@ const HajjForm = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </span>
-                            <input
-                                type="text"
-                                placeholder="Filter by name or district..."
-                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                                {/* Search box */}
+                                <div className="relative">
+
+                                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                        🔍
+                                    </span>
+
+                                    <input
+                                        type="text"
+                                        placeholder="Search name, district, passport or phone..."
+                                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+
+                                </div>
+
+
+                                {/* Application Year Filter */}
+                                <div>
+
+                                    <select
+                                        value={selectedYear}
+                                        onChange={(e) => setSelectedYear(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-md py-2 px-3"
+                                    >
+
+                                        <option value="">
+                                            All Application Years
+                                        </option>
+
+                                        <option value="2027">
+                                            Hajj 2027
+                                        </option>
+
+                                        <option value="2028">
+                                            Hajj 2028
+                                        </option>
+
+                                        <option value="2029">
+                                            Hajj 2029
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                            </div>
                         </div>
-                        {searchTerm && (
+                        {(searchTerm || selectedYear) && (
                             <p className="mt-2 text-xs text-blue-600">
-                                Showing {filteredSubmissions.length} of {submissions.length} results
+                                Showing {filteredSubmissions.length} of {submissions.length} applications
                             </p>
                         )}
                     </div>
@@ -1143,22 +1247,22 @@ const HajjForm = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredSubmissions.length > 0 ? ( filteredSubmissions.map((sub) => (
-                                        <tr key={sub.id} className={`border-b ${editingId === sub.id ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}>
-                                            <td className="py-3 px-4 text-sm font-semibold">{`${sub.concatenatedFirstName} ${sub.lastName}`}</td>
-                                            <td className="py-3 px-4 text-sm">
-                                                {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}
-                                            </td>
-                                            <td className="py-3 px-4 text-sm">{sub.passportNumber}</td>
-                                            <td className="py-3 px-4 text-sm">{sub.phone}</td>
-                                            <td className="py-3 px-4 text-center space-x-2 whitespace-nowrap">
-                                                {/* Action Buttons */}
-                                                <button type="button" onClick={() => handleEdit(sub)} className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition">Edit</button>
-                                                <button type="button" onClick={() => handleDelete(sub.id)} className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition">Delete</button>
-                                                <button type="button" onClick={() => handlePrint(sub)} className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition">Print</button>
-                                            </td>
-                                        </tr>
-                                    ))
+                                {filteredSubmissions.length > 0 ? (filteredSubmissions.map((sub) => (
+                                    <tr key={sub.id} className={`border-b ${editingId === sub.id ? 'bg-yellow-100' : 'hover:bg-gray-50'}`}>
+                                        <td className="py-3 px-4 text-sm font-semibold">{`${sub.concatenatedFirstName} ${sub.lastName}`}</td>
+                                        <td className="py-3 px-4 text-sm">
+                                            {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}
+                                        </td>
+                                        <td className="py-3 px-4 text-sm">{sub.passportNumber}</td>
+                                        <td className="py-3 px-4 text-sm">{sub.phone}</td>
+                                        <td className="py-3 px-4 text-center space-x-2 whitespace-nowrap">
+                                            {/* Action Buttons */}
+                                            <button type="button" onClick={() => handleEdit(sub)} className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition">Edit</button>
+                                            <button type="button" onClick={() => handleDelete(sub.id)} className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition">Delete</button>
+                                            <button type="button" onClick={() => handlePrint(sub)} className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition">Print</button>
+                                        </td>
+                                    </tr>
+                                ))
                                 ) : (
                                     <tr>
                                         <td colSpan="5" className="py-4 text-center text-gray-500">
@@ -1173,53 +1277,53 @@ const HajjForm = () => {
                     {/* 2. MOBILE CARD VIEW (Below md:) */}
                     {/* This list is shown on small screens and hidden on medium screens and larger */}
                     <div className="md:hidden space-y-4">
-                        {filteredSubmissions.length > 0 ? ( filteredSubmissions.map((sub) => (
-                                <div
-                                    key={sub.id}
-                                    className={`p-4 border rounded-lg shadow-md ${editingId === sub.id ? 'bg-yellow-100 border-yellow-500' : 'bg-white border-gray-200'}`}
-                                >
-                                    {/* Header: Name and Passport */}
-                                    <div className="flex justify-between items-start mb-2 border-b pb-2">
-                                        <p className="text-lg font-bold text-blue-700">
-                                            {`${sub.concatenatedFirstName} ${sub.lastName}`}
-                                        </p>
-                                        <p className="text-sm text-gray-600">
-                                            <span className="font-medium">Passport:</span> {sub.passportNumber}
-                                        </p>
-                                    </div>
-
-                                    {/* Details */}
-                                    <div className="space-y-1 text-sm mb-4">
-                                        <p><strong>District:</strong> {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}</p>
-                                        <p><strong>Phone:</strong> {sub.phone}</p>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex justify-around space-x-2 pt-2 border-t border-dashed border-gray-200">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleEdit(sub)}
-                                            className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition flex-1"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDelete(sub.id)}
-                                            className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition flex-1"
-                                        >
-                                            Delete
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handlePrint(sub)}
-                                            className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition flex-1"
-                                        >
-                                            Print
-                                        </button>
-                                    </div>
+                        {filteredSubmissions.length > 0 ? (filteredSubmissions.map((sub) => (
+                            <div
+                                key={sub.id}
+                                className={`p-4 border rounded-lg shadow-md ${editingId === sub.id ? 'bg-yellow-100 border-yellow-500' : 'bg-white border-gray-200'}`}
+                            >
+                                {/* Header: Name and Passport */}
+                                <div className="flex justify-between items-start mb-2 border-b pb-2">
+                                    <p className="text-lg font-bold text-blue-700">
+                                        {`${sub.concatenatedFirstName} ${sub.lastName}`}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                        <span className="font-medium">Passport:</span> {sub.passportNumber}
+                                    </p>
                                 </div>
-                            ))
+
+                                {/* Details */}
+                                <div className="space-y-1 text-sm mb-4">
+                                    <p><strong>District:</strong> {Array.isArray(sub.districts) ? sub.districts.join(', ') : (sub.district || 'N/A')}</p>
+                                    <p><strong>Phone:</strong> {sub.phone}</p>
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-around space-x-2 pt-2 border-t border-dashed border-gray-200">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEdit(sub)}
+                                        className="bg-yellow-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-yellow-600 transition flex-1"
+                                    >
+                                        Edit
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDelete(sub.id)}
+                                        className="bg-red-500 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-red-600 transition flex-1"
+                                    >
+                                        Delete
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handlePrint(sub)}
+                                        className="bg-gray-700 text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-gray-800 transition flex-1"
+                                    >
+                                        Print
+                                    </button>
+                                </div>
+                            </div>
+                        ))
                         ) : (
                             <p className="py-4 text-center text-gray-500">
                                 No applications submitted yet.

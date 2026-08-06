@@ -1,167 +1,262 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase"; 
 
 const HajjDashboard = () => {
-  const [stats, setStats] = useState({
-    total: 0,
-    gender: {},
-    district: {},
-    maritalStatus: {},
-    sSeries: 0,
-    pSeries: 0,
-    generalSeries: 0,
-  });
+  const [allApplicants, setAllApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState("ALL");
 
- const fetchStats = async () => {
+  // Fetch all documents once
+  const fetchData = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
       const data = querySnapshot.docs.map((doc) => doc.data());
-
-      const districtCount = {};
-      const genderCount = {};
-      const maritalCount = {};
-      
-      let sCount = 0;
-      let pCount = 0;
-      let gCount = 0;
-
-      data.forEach((a) => {
-        const slh6Value = a.slh6 || "";
-
-        // 1. Series Totals Logic
-        if (/^S/i.test(slh6Value)) {
-          sCount++;
-        } else if (/^P/i.test(slh6Value)) {
-          pCount++;
-        } else if (/^\d/.test(slh6Value)) {
-          gCount++;
-        }
-
-        // 2. District Normalization (Bo vs BO vs bo)
-        if (Array.isArray(a.districts) && a.districts.length > 0) {
-          a.districts.forEach((d) => {
-            // Trim and Proper Case: "  bo " -> "Bo"
-            const normalizedD = d.trim().charAt(0).toUpperCase() + d.trim().slice(1).toLowerCase();
-            districtCount[normalizedD] = (districtCount[normalizedD] || 0) + 1;
-          });
-        }
-
-        // 3. Gender Normalization (male vs Male vs Female )
-        if (a.gender) {
-          // Removes spaces and ensures "Male" or "Female"
-          const normalizedGender = a.gender.trim().charAt(0).toUpperCase() + a.gender.trim().slice(1).toLowerCase();
-          genderCount[normalizedGender] = (genderCount[normalizedGender] || 0) + 1;
-        }
-
-        // 4. Marital Status Normalization
-        if (a.maritalStatus) {
-          const normalizedMarital = a.maritalStatus.trim().charAt(0).toUpperCase() + a.maritalStatus.trim().slice(1).toLowerCase();
-          maritalCount[normalizedMarital] = (maritalCount[normalizedMarital] || 0) + 1;
-        }
-      });
-
-      setStats({
-        total: data.length,
-        gender: genderCount,
-        district: districtCount,
-        maritalStatus: maritalCount,
-        sSeries: sCount,
-        pSeries: pCount,
-        generalSeries: gCount,
-      });
+      setAllApplicants(data);
     } catch (error) {
-      console.error("Error fetching stats:", error);
+      console.error("Error fetching Hajj records:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchData();
   }, []);
 
-  if (loading) return <p className="text-center text-gray-500 mt-10 font-bold uppercase tracking-widest">Synchronizing Dashboard...</p>;
+  // Extract unique available application years dynamically
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set();
+    allApplicants.forEach((a) => {
+      if (a.applicationYear) {
+        yearsSet.add(a.applicationYear.toString());
+      }
+    });
+    return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+  }, [allApplicants]);
+
+  // Dynamically compute stats whenever selectedYear or allApplicants changes
+  const stats = useMemo(() => {
+    const filtered = allApplicants.filter((item) => {
+      if (selectedYear === "ALL") return true;
+      return (item.applicationYear || "").toString() === selectedYear;
+    });
+
+    const districtCount = {};
+    const genderCount = {};
+    const maritalCount = {};
+
+    let sCount = 0;
+    let pCount = 0;
+    let gCount = 0;
+
+    filtered.forEach((a) => {
+      const slh6Value = a.slh6 || "";
+
+      // Series breakdown
+      if (/^S/i.test(slh6Value)) {
+        sCount++;
+      } else if (/^P/i.test(slh6Value)) {
+        pCount++;
+      } else if (/^\d/.test(slh6Value)) {
+        gCount++;
+      }
+
+      // District Normalization
+      if (Array.isArray(a.districts) && a.districts.length > 0) {
+        a.districts.forEach((d) => {
+          if (d && typeof d === "string") {
+            const normalizedD = d.trim().charAt(0).toUpperCase() + d.trim().slice(1).toLowerCase();
+            districtCount[normalizedD] = (districtCount[normalizedD] || 0) + 1;
+          }
+        });
+      }
+
+      // Gender Normalization
+      if (a.gender && typeof a.gender === "string") {
+        const normalizedGender = a.gender.trim().charAt(0).toUpperCase() + a.gender.trim().slice(1).toLowerCase();
+        genderCount[normalizedGender] = (genderCount[normalizedGender] || 0) + 1;
+      }
+
+      // Marital Status Normalization
+      if (a.maritalStatus && typeof a.maritalStatus === "string") {
+        const normalizedMarital = a.maritalStatus.trim().charAt(0).toUpperCase() + a.maritalStatus.trim().slice(1).toLowerCase();
+        maritalCount[normalizedMarital] = (maritalCount[normalizedMarital] || 0) + 1;
+      }
+    });
+
+    return {
+      total: filtered.length,
+      gender: genderCount,
+      district: districtCount,
+      maritalStatus: maritalCount,
+      sSeries: sCount,
+      pSeries: pCount,
+      generalSeries: gCount,
+    };
+  }, [allApplicants, selectedYear]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-sm">
+          Synchronizing Dashboard...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-gray-50 min-h-screen">
+    <div className="p-4 md:p-8 bg-slate-50 min-h-screen space-y-8">
       
-      {/* LEFT SIDE — District List */}
-      <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-700">
-        <h2 className="text-xl font-black text-blue-700 mb-4 uppercase tracking-tighter">Applicants by District</h2>
-        <table className="min-w-full border border-gray-100 rounded-lg overflow-hidden">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-gray-600">District</th>
-              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-gray-600">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(stats.district)
-              .sort((a, b) => a[0].localeCompare(b[0]))
-              .map(([district, count]) => (
-                <tr key={district} className="border-t hover:bg-blue-50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium">{district}</td>
-                  <td className="px-4 py-3 text-sm font-black text-blue-700">{count}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* RIGHT SIDE — Other Stats */}
-      <div className="space-y-6">
-        
-        {/* Series Breakdown Section - NEW */}
-        <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-black">
-          <h2 className="text-xl font-black text-gray-800 mb-4 uppercase tracking-tighter">Series Breakdown</h2>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-blue-50 p-3 rounded-lg text-center border border-blue-100">
-              <p className="text-[10px] font-bold text-blue-600 uppercase">S-Series</p>
-              <p className="text-2xl font-black text-blue-900">{stats.sSeries}</p>
-            </div>
-            <div className="bg-emerald-50 p-3 rounded-lg text-center border border-emerald-100">
-              <p className="text-[10px] font-bold text-emerald-600 uppercase">P-Series</p>
-              <p className="text-2xl font-black text-emerald-900">{stats.pSeries}</p>
-            </div>
-            <div className="bg-orange-50 p-3 rounded-lg text-center border border-orange-100">
-              <p className="text-[10px] font-bold text-orange-600 uppercase">General</p>
-              <p className="text-2xl font-black text-orange-900">{stats.generalSeries}</p>
-            </div>
-          </div>
-          <p className="mt-4 text-center text-sm font-bold text-gray-500 bg-gray-100 py-2 rounded">
-            Total Record: {stats.total}
+      {/* HEADER & YEAR FILTER CONTROL */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+        <div>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+            HAJJ ANALYTICS DASHBOARD
+          </h1>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">
+            Presidential Hajj Taskforce Secretariat
           </p>
         </div>
 
-        {/* Existing Overview Section */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
-          <h2 className="text-xl font-bold text-blue-700 mb-4 uppercase tracking-tighter">Identity Details</h2>
-          
-          <div className="mb-6">
-            <h3 className="font-bold text-xs uppercase text-gray-400 mb-3 tracking-widest">By Gender</h3>
-            <div className="space-y-2">
-              {Object.entries(stats.gender).map(([gender, count]) => (
-                <div key={gender} className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-md">
-                   <span className="text-sm font-semibold">{gender}</span>
-                   <span className="font-black text-gray-700">{count}</span>
-                </div>
-              ))}
-            </div>
+        {/* Year Filter Dropdown */}
+        <div className="flex items-center space-x-3 bg-slate-100 p-2 rounded-xl">
+          <label htmlFor="yearFilter" className="text-xs font-bold uppercase text-slate-600 pl-2">
+            Filter Year:
+          </label>
+          <select
+            id="yearFilter"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="bg-white text-slate-800 font-bold text-sm px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 transition"
+          >
+            <option value="ALL">All Application Years</option>
+            {availableYears.map((yr) => (
+              <option key={yr} value={yr}>
+                {yr}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* TOP STAT CARDS OVERVIEW */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Applicants</p>
+          <p className="text-3xl font-black text-slate-900 mt-2">{stats.total}</p>
+        </div>
+        <div className="bg-blue-50/60 p-5 rounded-2xl shadow-sm border border-blue-100">
+          <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">S-Series</p>
+          <p className="text-3xl font-black text-blue-900 mt-2">{stats.sSeries}</p>
+        </div>
+        <div className="bg-emerald-50/60 p-5 rounded-2xl shadow-sm border border-emerald-100">
+          <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">P-Series</p>
+          <p className="text-3xl font-black text-emerald-900 mt-2">{stats.pSeries}</p>
+        </div>
+        <div className="bg-orange-50/60 p-5 rounded-2xl shadow-sm border border-orange-100">
+          <p className="text-xs font-bold text-orange-600 uppercase tracking-widest">General Series</p>
+          <p className="text-3xl font-black text-orange-900 mt-2">{stats.generalSeries}</p>
+        </div>
+      </div>
+
+      {/* MAIN CONTENT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* LEFT COLUMN (2 COLS) — District Distribution */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-tight">
+              District Distribution
+            </h2>
+            <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+              {Object.keys(stats.district).length} Districts
+            </span>
           </div>
 
-          <div>
-            <h3 className="font-bold text-xs uppercase text-gray-400 mb-3 tracking-widest">By Marital Status</h3>
-            <div className="space-y-2">
-              {Object.entries(stats.maritalStatus).map(([status, count]) => (
-                 <div key={status} className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-md">
-                    <span className="text-sm font-semibold">{status}</span>
-                    <span className="font-black text-gray-700">{count}</span>
-                 </div>
-              ))}
+          {Object.keys(stats.district).length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">No district data available for this selection.</p>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(stats.district)
+                .sort((a, b) => b[1] - a[1]) // Sort highest count first
+                .map(([district, count]) => {
+                  const percentage = stats.total > 0 ? ((count / stats.total) * 100).toFixed(1) : 0;
+                  return (
+                    <div key={district} className="space-y-1">
+                      <div className="flex justify-between items-center text-sm font-semibold">
+                        <span className="text-slate-700">{district}</span>
+                        <span className="text-slate-900 font-bold">{count} <span className="text-xs font-normal text-slate-400">({percentage}%)</span></span>
+                      </div>
+                      {/* Visual progress bar */}
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div
+                          className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN (1 COL) — Demographic Breakdown */}
+        <div className="space-y-6">
+
+          {/* Gender Stats Card */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight mb-4">
+              By Gender
+            </h2>
+            {Object.keys(stats.gender).length === 0 ? (
+              <p className="text-sm text-slate-400">No data available.</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(stats.gender).map(([gender, count]) => {
+                  const percentage = stats.total > 0 ? ((count / stats.total) * 100).toFixed(1) : 0;
+                  return (
+                    <div key={gender} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="text-sm font-bold text-slate-700">{gender}</span>
+                      <div className="text-right">
+                        <span className="text-sm font-black text-slate-900 block">{count}</span>
+                        <span className="text-[10px] font-semibold text-slate-400">{percentage}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
+
+          {/* Marital Status Card */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight mb-4">
+              By Marital Status
+            </h2>
+            {Object.keys(stats.maritalStatus).length === 0 ? (
+              <p className="text-sm text-slate-400">No data available.</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(stats.maritalStatus).map(([status, count]) => {
+                  const percentage = stats.total > 0 ? ((count / stats.total) * 100).toFixed(1) : 0;
+                  return (
+                    <div key={status} className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="text-sm font-bold text-slate-700">{status}</span>
+                      <div className="text-right">
+                        <span className="text-sm font-black text-slate-900 block">{count}</span>
+                        <span className="text-[10px] font-semibold text-slate-400">{percentage}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
 
       </div>
