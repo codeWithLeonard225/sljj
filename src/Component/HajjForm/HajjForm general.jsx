@@ -27,7 +27,7 @@ const HajjForm = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedYear, setSelectedYear] = useState("2027");
+  const [selectedYear, setSelectedYear] = useState("");
 
   const [submissions, setSubmissions] = useState([]);
   const [editingId, setEditingId] = useState(null);

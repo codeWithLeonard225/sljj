@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase"; 
 
 const SCodeReport = () => {
@@ -9,22 +9,16 @@ const SCodeReport = () => {
     const fetchSCodeRecords = async () => {
         setLoading(true);
         try {
-            // 🔥 OPTIMIZED: Query specifically where applicationYear is 2027 (string or number) on the server side
-            const collRef = collection(db, "hajjApplicants");
-            const q = query(collRef, where("applicationYear", "in", ["2027", 2027]));
-            
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
             const allData = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
 
-            // Filter for SLH6 starting with 'S' (case insensitive)
             const filtered = allData.filter(person => 
                 person.slh6 && /^S/i.test(person.slh6)
             );
 
-            // Numerical Sort (S1, S2, S10 instead of S1, S10, S2)
             const sorted = filtered.sort((a, b) => {
                 const numA = parseInt(a.slh6.replace(/\D/g, ''), 10) || 0;
                 const numB = parseInt(b.slh6.replace(/\D/g, ''), 10) || 0;
@@ -47,11 +41,11 @@ const SCodeReport = () => {
         <div className="p-8 bg-white min-h-screen">
             <div className="max-w-4xl mx-auto border border-gray-300 shadow-sm p-6">
                 
-                {/* Statistics Bar */}
+                {/* Statistics Bar - New Section */}
                 {!loading && (
                     <div className="mb-6 flex justify-end">
                         <div className="bg-blue-50 border border-blue-200 px-6 py-3 rounded-lg text-right">
-                            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">Total 2027 S-Series</p>
+                            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">Total S-Series</p>
                             <p className="text-3xl font-black text-blue-900">{reportData.length}</p>
                         </div>
                     </div>
@@ -59,12 +53,12 @@ const SCodeReport = () => {
 
                 {/* Report Header */}
                 <div className="text-center border-b-2 border-black pb-4 mb-6">
-                    <h1 className="text-2xl font-bold uppercase tracking-tighter">Special Category Report (Series S - 2027)</h1>
+                    <h1 className="text-2xl font-bold uppercase tracking-tighter">Special Category Report (Series S)</h1>
                     <p className="text-gray-600">Generated on: {new Date().toLocaleDateString()}</p>
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-10 text-lg animate-pulse">Loading 2027 S-Series Records...</div>
+                    <div className="text-center py-10 text-lg animate-pulse">Loading Records...</div>
                 ) : (
                     <table className="w-full text-left border-collapse">
                         <thead>
@@ -96,7 +90,7 @@ const SCodeReport = () => {
                             ) : (
                                 <tr>
                                     <td colSpan="5" className="p-10 text-center text-gray-500 italic">
-                                        No 2027 records found starting with "S".
+                                        No records found starting with "S".
                                     </td>
                                 </tr>
                             )}
@@ -106,7 +100,7 @@ const SCodeReport = () => {
 
                 {/* Report Footer */}
                 <div className="mt-8 flex justify-between items-center text-xs text-gray-500 border-t pt-4">
-                    <p>Verified Internal Document (2027) - Page 1 of 1</p>
+                    <p>Verified Internal Document - Page 1 of 1</p>
                     <div className="flex gap-4">
                          <button 
                             onClick={fetchSCodeRecords} 
@@ -116,7 +110,7 @@ const SCodeReport = () => {
                         </button>
                         <button 
                             onClick={() => window.print()} 
-                            className="bg-black text-white px-6 py-2 rounded font-bold hover:bg-gray-800 print:hidden transition"
+                            className="bg-black text-white px-6 py-2 rounded font-bold hover:bg-gray-800 print:hidden transition shadow-md"
                         >
                             Print Report
                         </button>

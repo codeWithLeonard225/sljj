@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase";
 
 const DistrictFullReport = () => {
@@ -12,11 +12,7 @@ const DistrictFullReport = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // 🔥 OPTIMIZED: Filter by 2027 directly on the Firestore server to save bandwidth
-            const collRef = collection(db, "hajjApplicants");
-            const q = query(collRef, where("applicationYear", "in", ["2027", 2027]));
-            
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
             const data = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
@@ -65,7 +61,7 @@ const DistrictFullReport = () => {
                 <div className="bg-slate-800 p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4 print:bg-white print:text-black print:border-b-2">
                     <div>
                         <h1 className="text-2xl font-black uppercase tracking-tight">District Master Report</h1>
-                        <p className="text-slate-400 text-xs font-bold uppercase">Hajj 2027 Database</p>
+                        <p className="text-slate-400 text-xs font-bold uppercase">Hajj 2026 Database</p>
                     </div>
 
                     <div className="flex items-center gap-3 print:hidden">

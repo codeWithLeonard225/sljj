@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase";
 
 const GeneralSeriesReport = () => {
@@ -9,18 +9,14 @@ const GeneralSeriesReport = () => {
     const fetchGeneralRecords = async () => {
         setLoading(true);
         try {
-            // 🔥 OPTIMIZED: Query specifically where applicationYear is 2027 (string or number) on the server side
-            const collRef = collection(db, "hajjApplicants");
-            const q = query(collRef, where("applicationYear", "in", ["2027", 2027]));
-            
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
             const allData = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
 
             // Filter for SLH6 that starts with a number (0-9)
-            // This excludes special series like 'S045' and 'P048'
+            // This excludes 'S045' and 'P048'
             const filtered = allData.filter(person => 
                 person.slh6 && /^\d/.test(person.slh6)
             );
@@ -52,22 +48,22 @@ const GeneralSeriesReport = () => {
                 <div className="bg-blue-800 text-white p-6 flex justify-between items-center print:text-black print:border-b-2 print:border-black">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">GENERAL SERIES REPORT (001+)</h1>
-                        <p className="text-blue-100 print:text-gray-600 italic">Hajj 2027 Standard Applicant Queue</p>
+                        <p className="text-blue-100 print:text-gray-600 italic">Standard Applicant Queue</p>
                     </div>
                     <div className="text-right bg-blue-900 px-4 py-2 rounded-lg">
-                        <p className="text-xs uppercase opacity-70">Total 2027 Applicants</p>
+                        <p className="text-xs uppercase opacity-70">Total Applicants</p>
                         <p className="text-3xl font-black">{reportData.length}</p>
                     </div>
                 </div>
 
                 {loading ? (
-                    <div className="py-20 text-center text-slate-400 animate-pulse">Scanning Standard 2027 Records...</div>
+                    <div className="py-20 text-center text-slate-400 animate-pulse">Scanning Standard Records...</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-100 border-b border-slate-300">
-                                    <th className="p-4 text-xs font-bold text-slate-660 uppercase">SLH6 ID</th>
+                                    <th className="p-4 text-xs font-bold text-slate-600 uppercase">SLH6 ID</th>
                                     <th className="p-4 text-xs font-bold text-slate-600 uppercase">Full Name</th>
                                     <th className="p-4 text-xs font-bold text-slate-600 uppercase">Gender</th>
                                     <th className="p-4 text-xs font-bold text-slate-600 uppercase">District</th>
@@ -94,7 +90,7 @@ const GeneralSeriesReport = () => {
                                 ) : (
                                     <tr>
                                         <td colSpan="5" className="p-12 text-center text-slate-400 italic">
-                                            No numerical-only records found for 2027.
+                                            No numerical-only records found.
                                         </td>
                                     </tr>
                                 )}

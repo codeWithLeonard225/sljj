@@ -134,7 +134,7 @@ const OfficialDeclaration = ({ formData, handleInputChange }) => {
 
         <div className="flex flex-col items-start w-full sm:w-1/3">
           <div className="flex items-center space-x-2 mb-4 w-full">
-            <label className="text-sm whitespace-nowrap">SLH6 No</label>
+            <label className="text-sm whitespace-nowrap">SLH7 No</label>
             <input
               type="text"
               name="slh6"

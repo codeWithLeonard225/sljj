@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase";
 
 const PCodeReport = () => {
@@ -9,11 +9,7 @@ const PCodeReport = () => {
     const fetchPCodeRecords = async () => {
         setLoading(true);
         try {
-            // 🔥 OPTIMIZED: Query specifically where applicationYear is 2027 (string or number) on the server side
-            const collRef = collection(db, "hajjApplicants");
-            const q = query(collRef, where("applicationYear", "in", ["2027", 2027]));
-            
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
             const allData = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
@@ -51,10 +47,10 @@ const PCodeReport = () => {
                 <div className="bg-emerald-700 text-white p-6 flex justify-between items-center print:bg-white print:text-black print:border-b-2 print:border-black">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">P-SERIES APPLICANT REPORT</h1>
-                        <p className="text-emerald-100 print:text-gray-600">Hajj 2027 Internal Records</p>
+                        <p className="text-emerald-100 print:text-gray-600">Hajj 2026 Internal Records</p>
                     </div>
                     <div className="text-right">
-                        <p className="text-sm">Total 2027 Count</p>
+                        <p className="text-sm">Total Count</p>
                         <p className="text-3xl font-black">{reportData.length}</p>
                     </div>
                 </div>
@@ -62,7 +58,7 @@ const PCodeReport = () => {
                 {loading ? (
                     <div className="flex justify-center items-center py-20">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-700"></div>
-                        <span className="ml-3 text-gray-500">Retrieving P-Series 2027 data...</span>
+                        <span className="ml-3 text-gray-500">Retrieving P-Series data...</span>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -96,7 +92,7 @@ const PCodeReport = () => {
                                 ) : (
                                     <tr>
                                         <td colSpan="5" className="p-12 text-center text-gray-400 italic">
-                                            No 2027 applicants found with a "P" prefix.
+                                            No applicants found with a "P" prefix.
                                         </td>
                                     </tr>
                                 )}
@@ -107,7 +103,7 @@ const PCodeReport = () => {
 
                 {/* Footer / Print Actions */}
                 <div className="p-6 bg-gray-50 border-t border-gray-200 flex justify-between items-center print:hidden">
-                    <p className="text-xs text-gray-400 font-mono">Report ID: P_SERIES_2027_{new Date().getTime()}</p>
+                    <p className="text-xs text-gray-400 font-mono">Report ID: P_SERIES_{new Date().getTime()}</p>
                     <div className="space-x-3">
                         <button 
                             onClick={fetchPCodeRecords}

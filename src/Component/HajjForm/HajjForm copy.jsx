@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from "firebase/firestore";
 import { db } from "../../../firebase"; // adjust path as needed
-import localforage from "localforage";
 
 import { initialFormData } from "./utils/initialFormData";
 import { calculateAgeFromDob } from "./utils/hajjHelpers";
@@ -14,12 +13,6 @@ import MedicalDeclaration from "./components/MedicalDeclaration";
 import OfficialDeclaration from "./components/OfficialDeclaration";
 import ApplicantTable from "./components/ApplicantTable";
 
-// 🔥 INITIALIZE LOCALFORAGE CACHE INSTANCE FOR APPLICATIONS LIST
-const hajjFormStore = localforage.createInstance({
-  name: "HajjCache",
-  storeName: "hajj_form_submissions",
-});
-
 const HajjForm = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [showCameraFor, setShowCameraFor] = useState(null);
@@ -27,12 +20,12 @@ const HajjForm = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedYear, setSelectedYear] = useState("2027");
+  const [selectedYear, setSelectedYear] = useState("2027"); // Defaulted to 2027 to align with the stream
 
   const [submissions, setSubmissions] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isFetchingData, setIsFetchingData] = useState(true); // 🔥 Data Loading State
+  const [isFetchingData, setIsFetchingData] = useState(true); // 🔥 Data Loading State Indicator
 
   // Debounce search input to prevent UI freezing
   useEffect(() => {
@@ -57,23 +50,16 @@ const HajjForm = () => {
     }));
   }, []);
 
-  // 🔥 OPTIMIZED FETCH: Hybrid Local Cache rendering + Background Server Fetching Strategy
-  const fetchSubmissions = async (forceRefresh = false) => {
-    const cacheKey = "all_hajj_submissions";
+  // 🔥 OPTIMIZED: Fetching ONLY 2027 data from the server with loading feedback
+  const fetchSubmissions = async () => {
     setIsFetchingData(true);
-    
     try {
-      // 1. Try reading from local storage cache first to show swift initial results
-      if (!forceRefresh) {
-        const cachedData = await hajjFormStore.getItem(cacheKey);
-        if (cachedData && cachedData.data) {
-          setSubmissions(cachedData.data);
-          setIsFetchingData(false); // Stop loader instantly when cache loads
-        }
-      }
-
-      // 2. Query Firestore network backend for the ultimate truth
-      const querySnapshot = await getDocs(collection(db, "hajjApplicants"));
+      const collRef = collection(db, "hajjApplicants");
+      
+      // Server-side filter checking for string "2027" or numeric 2027 variations
+      const q = query(collRef, where("applicationYear", "in", ["2027", 2027]));
+      
+      const querySnapshot = await getDocs(q);
       
       const getFullName = (docData) => {
         const first = docData.firstName || "";
@@ -101,19 +87,16 @@ const HajjForm = () => {
         return slh6A.localeCompare(slh6B);
       });
 
-      // 3. State update and update local storage engine cache
       setSubmissions(sortedData);
-      await hajjFormStore.setItem(cacheKey, { timestamp: Date.now(), data: sortedData });
-      
     } catch (error) {
       console.error("Error fetching submissions: ", error);
     } finally {
-      setIsFetchingData(false); // Ensure loading drops in all conditions
+      setIsFetchingData(false);
     }
   };
 
   useEffect(() => {
-    fetchSubmissions(false);
+    fetchSubmissions();
   }, []);
 
   const resetForm = useCallback(() => {
@@ -152,7 +135,7 @@ const HajjForm = () => {
         await addDoc(collection(db, "hajjApplicants"), dataToSave);
         alert("Form submitted successfully!");
       }
-      await fetchSubmissions(true);
+      await fetchSubmissions();
       resetForm();
     } catch (error) {
       console.error(`Error ${editingId ? "updating" : "adding"} document: `, error);
@@ -181,13 +164,13 @@ const HajjForm = () => {
       try {
         await deleteDoc(doc(db, "hajjApplicants", id));
         alert("Application deleted successfully!");
-        await fetchSubmissions(true);
+        await fetchSubmissions();
       } catch (error) {
         console.error("Error deleting document: ", error);
         alert("Error deleting application. Please try again.");
       }
     }
-  }, []);
+  }, [fetchSubmissions]);
 
   const handlePrint = useCallback((submissionData) => {
     const getVal = (key) => submissionData[key] || 'N/A';
@@ -268,6 +251,7 @@ const HajjForm = () => {
                     ${pilgrimPhotoHtml}
                     <p style="font-size: 8pt; margin: 0;">Pilgrim Photo</p>
                     <div class="info-item"><strong>SLH6:</strong> ${getVal('slh6')}</div>
+                    <div class="info-item"><strong>NIN:</strong> ${getVal('nunNo')}</div>
                 </div>
             </div>
 
@@ -391,18 +375,9 @@ const HajjForm = () => {
           </header>
 
           <div className="mb-6 bg-white/60 p-4 rounded-lg border border-gray-200">
-            <div className="flex justify-between items-center mb-1">
-              <label className="block text-sm font-semibold text-gray-700">
-                Application Year
-              </label>
-              <button
-                type="button"
-                onClick={() => fetchSubmissions(true)}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded"
-              >
-                ↻ Force Sync Data
-              </button>
-            </div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Application Year
+            </label>
             <input
               type="number"
               name="applicationYear"
@@ -466,12 +441,12 @@ const HajjForm = () => {
             </button>
           </div>
 
-          {/* 🔥 LOADING INDICATOR BANNER / SPINNER */}
+          {/* 🔥 LOADING INDICATOR SPINNER */}
           {isFetchingData && (
-            <div className="flex items-center justify-center space-x-2 my-4 py-2 bg-blue-50 border border-blue-100 rounded-lg">
+            <div className="flex items-center justify-center space-x-2 my-6 py-3 bg-blue-50 border border-blue-100 rounded-xl">
               <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
               <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">
-                Syncing Submissions...
+                Fetching 2027 Records...
               </span>
             </div>
           )}

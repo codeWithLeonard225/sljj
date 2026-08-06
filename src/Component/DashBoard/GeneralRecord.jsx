@@ -1,111 +1,108 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase"; 
 import localforage from "localforage";
 import { toast } from "react-toastify";
 
-// 💾 LocalForage Cache Setup targeting 2027 explicitly
 const hajjStore = localforage.createInstance({
-  name: "HajjCache_2027",
-  storeName: "hajj_2027_counts",
+  name: "HajjCache",
+  storeName: "hajj_gender_counts",
 });
 
-const Hajj2027Dashboard = () => {
+const HajjGenderDashboard = () => {
+  const [selectedYear, setSelectedYear] = useState("ALL");
   const [allApplicants, setAllApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [availableYears, setAvailableYears] = useState([]);
 
-  // 🚀 Real-Time Real-Time Snapshot Stream (Cache-First Architecture)
-  useEffect(() => {
-    let isMounted = true;
-    const cacheKey = "hajj_applicants_fixed_2027";
+  // Fetch Logic optimized to prevent real-time data over-streaming
+  const fetchDashboardData = async (forceRefresh = false) => {
+    setLoading(true);
+    const cacheKey = `hajj_applicants_${selectedYear}`;
 
-    const loadAndListen2027 = async () => {
-      // Step A: Load instantly from local storage cache for immediate display
-      try {
+    try {
+      if (!forceRefresh) {
         const cached = await hajjStore.getItem(cacheKey);
-        if (cached && cached.data && isMounted) {
+        if (cached && cached.data) {
           setAllApplicants(cached.data);
           setLoading(false);
+          return;
         }
-      } catch (e) {
-        console.error("LocalForage cache read failed:", e);
       }
 
-      // Step B: Build targeted 2027 query (Server-Side Filtered)
       const collRef = collection(db, "hajjApplicants");
-      const q = query(collRef, where("applicationYear", "in", ["2027", 2027]));
+      let q = collRef;
 
-      // Step C: Subscribe to Firestore real-time listener instead of static getDocs
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          // ⚡ Performance Win: Extract ONLY the micro-properties needed for dashboard counters
-          const freshData = snapshot.docs.map((doc) => ({
-            gender: doc.data().gender,
-            maritalStatus: doc.data().maritalStatus,
-            districts: doc.data().districts,
-            applicationYear: doc.data().applicationYear,
-          }));
+      if (selectedYear !== "ALL") {
+        q = query(collRef, where("applicationYear", "in", [selectedYear, Number(selectedYear)]));
+      }
 
-          if (isMounted) {
-            setAllApplicants(freshData);
-            setLoading(false);
-          }
+      // One-time fast network pull
+      const snapshot = await getDocs(q);
+      const freshData = snapshot.docs.map((doc) => ({
+        gender: doc.data().gender,
+        maritalStatus: doc.data().maritalStatus,
+        districts: doc.data().districts,
+        applicationYear: doc.data().applicationYear,
+      }));
 
-          // Step D: Update IndexedDB cache asynchronously in the background
-          hajjStore
-            .setItem(cacheKey, { timestamp: Date.now(), data: freshData })
-            .catch((err) => console.error("Cache write operation failed:", err));
-        },
-        (error) => {
-          console.error("Real-time snapshot synchronization failed:", error);
-          toast.error("Failed to sync live 2027 records.");
-          if (isMounted) setLoading(false);
-        }
-      );
+      setAllApplicants(freshData);
+      await hajjStore.setItem(cacheKey, { timestamp: Date.now(), data: freshData });
+    } catch (error) {
+      console.error("Fetch data failed:", error);
+      toast.error("Failed to sync records.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      return unsubscribe;
+  useEffect(() => {
+    fetchDashboardData();
+  }, [selectedYear]);
+
+  // Extract static list of application years once on initialization
+  useEffect(() => {
+    const fetchYears = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "hajjApplicants"));
+        const yearsSet = new Set();
+        snapshot.docs.forEach((doc) => {
+          const yr = doc.data()?.applicationYear;
+          if (yr) yearsSet.add(yr.toString());
+        });
+        setAvailableYears(Array.from(yearsSet).sort((a, b) => b.localeCompare(a)));
+      } catch (e) {
+        console.error("Failed parsing distinct years", e);
+      }
     };
-
-    const cleanupPromise = loadAndListen2027();
-
-    // Clean up active snapshot listener on component unmount
-    return () => {
-      isMounted = false;
-      cleanupPromise.then((unsub) => unsub && unsub());
-    };
+    fetchYears();
   }, []);
 
-  // 📊 Highly Optimized Single-Pass Aggregator
+  // 📊 Computational Aggregator (Stays identical to your working code)
   const stats = useMemo(() => {
     let male = 0;
     let female = 0;
     let genderOther = 0;
-
     let single = 0;
     let married = 0;
     let widow = 0;
     let maritalOther = 0;
-
     const districtCountMap = {};
 
     for (let i = 0; i < allApplicants.length; i++) {
       const applicant = allApplicants[i];
 
-      // A. Gender Sorting
       const g = String(applicant.gender || "").trim().toLowerCase();
       if (g === "male" || g === "m") male++;
       else if (g === "female" || g === "f") female++;
       else genderOther++;
 
-      // B. Marital Sorting
       const m = String(applicant.maritalStatus || "").trim().toLowerCase();
       if (m === "single") single++;
       else if (m === "married") married++;
       else if (m === "widow") widow++;
       else maritalOther++;
 
-      // C. District Aggregation
       if (Array.isArray(applicant.districts)) {
         applicant.districts.forEach((d) => {
           if (d && typeof d === "string") {
@@ -129,45 +126,51 @@ const Hajj2027Dashboard = () => {
 
   return (
     <div className="p-4 md:p-8 bg-slate-50 min-h-screen space-y-6">
-      {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-            HAJJ APPLICANTS SUMMARY (2027)
-          </h1>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">HAJJ APPLICANTS SUMMARY</h1>
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-1">
-            Presidential Hajj Taskforce Secretariat • Automated 2027 Sync Stream
+            Presidential Hajj Taskforce Secretariat
           </p>
+        </div>
+
+        <div className="flex items-center space-x-3 bg-slate-100 p-2 rounded-xl">
+          <button 
+            onClick={() => fetchDashboardData(true)}
+            className="bg-white hover:bg-slate-50 border text-slate-700 text-xs font-bold py-2 px-3 rounded-lg transition"
+          >
+            ↻ Refresh Data
+          </button>
+          <select
+            id="yearFilter"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="bg-white text-slate-800 font-bold text-sm px-4 py-2 rounded-lg border border-slate-200 focus:outline-none"
+          >
+            <option value="ALL">All Application Years</option>
+            {availableYears.map((yr) => (
+              <option key={yr} value={yr}>{yr}</option>
+            ))}
+          </select>
         </div>
       </div>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[30vh] space-y-3">
           <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-            Loading Live 2027 Records...
-          </p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Records...</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* TOTAL KPI DISPLAY METRIC */}
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-sm">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Total 2027 Applicants
-            </p>
-            <p className="text-5xl font-black text-slate-900 mt-2">
-              {stats.total}
-            </p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Applicants</p>
+            <p className="text-5xl font-black text-slate-900 mt-2">{stats.total}</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* COLUMN LEFT: GENDER & MARITAL BREAKDOWNS */}
             <div className="space-y-6">
-              {/* Gender Summary Card */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight border-b pb-2">
-                  Gender Breakdown
-                </h2>
+                <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight border-b pb-2">Gender Breakdown</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-100">
                     <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">Male</p>
@@ -186,11 +189,8 @@ const Hajj2027Dashboard = () => {
                 </div>
               </div>
 
-              {/* Marital Summary Card */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
-                <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight border-b pb-2">
-                  Marital Status Breakdown
-                </h2>
+                <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight border-b pb-2">Marital Status Breakdown</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100">
                     <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Single</p>
@@ -217,20 +217,17 @@ const Hajj2027Dashboard = () => {
               </div>
             </div>
 
-            {/* COLUMN RIGHT: GEOGRAPHIC DISTRIBUTION ANALYSIS */}
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4 flex flex-col">
               <div className="flex justify-between items-center border-b pb-2">
-                <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight">
-                  District Distribution
-                </h2>
+                <h2 className="text-md font-bold text-slate-800 uppercase tracking-tight">District Distribution</h2>
                 <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                  {Object.keys(stats.districts).length} Active Districts
+                  {Object.keys(stats.districts).length} Registered Districts
                 </span>
               </div>
 
               <div className="flex-1 overflow-y-auto pr-1 space-y-4 max-h-[360px]">
                 {Object.keys(stats.districts).length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-12">No district metrics recorded for 2027.</p>
+                  <p className="text-sm text-slate-400 text-center py-12">No district metrics returned.</p>
                 ) : (
                   Object.entries(stats.districts)
                     .sort((a, b) => b[1] - a[1])
@@ -263,4 +260,4 @@ const Hajj2027Dashboard = () => {
   );
 };
 
-export default Hajj2027Dashboard;
+export default HajjGenderDashboard;
