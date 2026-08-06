@@ -97,11 +97,14 @@ const HajjForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const requiredFields = [
-      "firstName", "lastName", "gender", "dob", "passportNumber",
-      "passportIssuePlace", "passportIssueDate", "passportExpiryDate",
-      "residentialAddress", "phone", "kinFirstName", "kinRelationship",
-      "kinPhone", "applicationYear", "slh6"
+      "firstName", "lastName", "gender", 
     ];
+    // const requiredFields = [
+    //   "firstName", "lastName", "gender", "dob", "passportNumber",
+    //   "passportIssuePlace", "passportIssueDate", "passportExpiryDate",
+    //   "residentialAddress", "phone", "kinFirstName", "kinRelationship",
+    //   "kinPhone", "applicationYear", "slh6"
+    // ];
 
     const missingFields = requiredFields.filter(
       (field) => !formData[field] || formData[field].toString().trim() === ""
