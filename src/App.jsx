@@ -1,8 +1,8 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-// import AdminLogin from "./Component/UserStoragePage/AdminLogin";
-// import AdminPanel from "./Component/Admin";
+import AdminLogin from "./Component/UserStoragePage/AdminLogin";
+import AdminPanel from "./Component/Admin";
 import PaymentReminderPage from "./Component/PaymentReminderPage";
 
 // ProtectedRoute component
@@ -19,17 +19,17 @@ export default function App() {
     <Router>
       <Routes>
         {/* Login Page */}
-        <Route path="/login" element={<PaymentReminderPage />} />
+        <Route path="/login" element={<AdminLogin />} />
 
         {/* Protected Admin Panel */}
-        {/* <Route
+        <Route
           path="/admin"
           element={
             <ProtectedRoute>
               <AdminPanel />
             </ProtectedRoute>
           }
-        /> */}
+        />
 
         {/* Default redirect */}
         <Route path="*" element={<Navigate to="/login" replace />} />
